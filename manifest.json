@@ -1,14 +1,14 @@
 {
   "name": "Registro de Horas",
-  "short_name": "Registro",
-  "description": "Control de jornada",
-  "start_url": "index.html",
+  "short_name": "Registro de Horas",
+  "description": "Control de jornada laboral",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F2F2F7",
-  "theme_color": "#1c1c1e",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
   "icons": [
     {
-      "src": "https://img.icons8.com/m_outlined/512/000000/clock.png",
+      "src": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/history/default/512px.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
