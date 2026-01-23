@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Horas 2026">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972531.png">
+    <link rel="manifest" href="manifest.json">
+    
     <title>Registro 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -23,7 +30,7 @@
         th { background: #f9f9f9; color: #666; font-size: 9px; text-transform: uppercase; padding: 12px 0; border-bottom: 1px solid #eee; text-align: center; }
         td { height: 52px; border-bottom: 1px solid #f2f2f2; text-align: center; vertical-align: middle; }
         
-        /* COLUMNAS IGUALADAS */
+        /* COLUMNAS PERFECTAMENTE IGUALADAS */
         .col-dia { width: 15%; }
         .col-data { width: 17%; }
 
@@ -33,6 +40,7 @@
         .weekend { background-color: #fafafa; }
         .hidden { display: none !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .tap-effect:active { opacity: 0.6; transform: scale(0.98); }
     </style>
 </head>
 <body class="pb-20">
@@ -41,7 +49,7 @@
         <div class="header-sticky px-3 shadow-sm">
             <div class="flex justify-between items-center pt-4 pb-2">
                 <h1 class="text-2xl font-bold tracking-tight">Registro 2026</h1>
-                <button id="btn-view" class="bg-blue-600 text-white text-[10px] px-4 py-2 rounded-full font-bold uppercase tracking-wider">Resumen</button>
+                <button id="btn-view" class="bg-blue-600 text-white text-[10px] px-4 py-2 rounded-full font-bold uppercase tracking-wider tap-effect">Resumen</button>
             </div>
 
             <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
@@ -81,9 +89,7 @@
             <div class="ios-card rounded-t-none border-t-0 mb-4">
                 <table id="main-table">
                     <colgroup>
-                        <col class="col-dia">
-                        <col class="col-data"><col class="col-data">
-                        <col class="col-data"><col class="col-data"><col class="col-data">
+                        <col class="col-dia"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data">
                     </colgroup>
                     <tbody id="table-body" class="text-sm"></tbody>
                 </table>
@@ -94,9 +100,12 @@
                 <span id="stat-total" class="text-xl font-bold font-mono">00:00</span>
             </div>
 
-            <div class="flex gap-2 mb-10">
-                <button id="btn-download" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase shadow-sm">Guardar Backup</button>
-                <button id="btn-import" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase shadow-sm">Cargar Backup</button>
+            <div class="flex flex-col gap-2 mb-10">
+                <div class="flex gap-2">
+                    <button id="btn-download" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase tap-effect">Backup</button>
+                    <button id="btn-import" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase tap-effect">Cargar</button>
+                </div>
+                <button id="btn-reset" class="w-full text-red-500 text-[10px] font-bold uppercase p-2 opacity-50">Borrar Datos Mes Actual</button>
             </div>
         </div>
 
@@ -118,20 +127,20 @@
         let currentMonthIdx = new Date().getMonth();
         let data = JSON.parse(localStorage.getItem('horas_2026_v5')) || {};
 
-        // FORMATEADOR MEJORADO: Soporta decimales (7.6 -> 07:36) y puntos (8.30 -> 08:30)
+        // Registro de Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+
         function formatTime(val) {
             if(!val) return "";
             let str = val.toString().replace(',', '.');
-            
-            // Si es un número decimal puro (ej: 7.6 o 7.5)
             if(!str.includes(':') && !isNaN(str) && parseFloat(str) < 24) {
                 let d = parseFloat(str);
                 let h = Math.floor(d);
                 let m = Math.round((d - h) * 60);
                 return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
             }
-
-            // Si es formato reloj con punto o dos puntos (8.30 o 8:30)
             let clean = str.replace(/[.]/g, ':');
             if(!clean.includes(':')) {
                 if(clean.length <= 2) clean += ":00";
@@ -171,7 +180,6 @@
             body.innerHTML = "";
             const year = 2026;
             const daysInMonth = new Date(year, currentMonthIdx + 1, 0).getDate();
-            
             let mReal = 0, mExtra = 0, mDays = 0;
 
             for(let d = 1; d <= daysInMonth; d++) {
@@ -179,8 +187,8 @@
                 const key = `${year}-${currentMonthIdx + 1}-${d}`;
                 const dayData = data[key] || { in: '', out: '', obj: '07:36' };
                 const isWE = date.getDay() === 0 || date.getDay() === 6;
-                
                 let worked = 0, diff = 0;
+                
                 if(dayData.in && dayData.out) {
                     worked = timeToDec(dayData.out) - timeToDec(dayData.in);
                     if(worked < 0) worked += 24;
@@ -218,7 +226,6 @@
             document.getElementById('stat-days').innerText = d;
             document.getElementById('stat-real').innerText = decToClock(r);
             document.getElementById('stat-extra').innerText = decToClock(e);
-            
             let total = 0;
             Object.keys(data).forEach(k => {
                 const day = data[k];
@@ -232,6 +239,16 @@
             document.getElementById('stat-total').innerText = decToClock(total);
         }
 
+        document.getElementById('btn-reset').onclick = () => {
+            if(confirm("¿Seguro que quieres borrar este mes?")) {
+                const monthStr = `-${currentMonthIdx + 1}-`;
+                Object.keys(data).forEach(k => { if(k.includes(monthStr)) delete data[k]; });
+                localStorage.setItem('horas_2026_v5', JSON.stringify(data));
+                renderTable();
+            }
+        };
+
+        // El resto de funciones (Resumen, Backup, Importar) siguen igual que la V5...
         document.getElementById('btn-view').onclick = function() {
             const main = document.getElementById('view-main');
             const summ = document.getElementById('view-summary');
@@ -269,13 +286,7 @@
         document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click();
         document.getElementById('file-input').onchange = (e) => {
             const reader = new FileReader();
-            reader.onload = (ev) => { 
-                try {
-                    data = JSON.parse(ev.target.result); 
-                    localStorage.setItem('horas_2026_v5', JSON.stringify(data)); 
-                    renderTable(); 
-                } catch(e) { alert("Archivo no válido"); }
-            };
+            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_2026_v5', JSON.stringify(data)); renderTable(); };
             reader.readAsText(e.target.files[0]);
         };
 
