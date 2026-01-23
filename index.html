@@ -9,7 +9,7 @@
     
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
-    <link rel="manifest" href="manifest.json?v=4">
+    <link rel="manifest" href="manifest.json?v=5">
     
     <title>Registro de Horas</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,33 +20,47 @@
         .ios-card { background: white; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
         table { border-collapse: collapse; width: 100%; table-layout: fixed; }
         th { background: #fbfbfd; color: #8e8e93; font-size: 9px; text-transform: uppercase; padding: 12px 0; text-align: center; font-weight: 700; border-bottom: 0.5px solid #e5e5ea; }
-        td { height: 60px; border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; }
-        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; outline: none; padding: 5px 0; font-variant-numeric: tabular-nums; }
-        .col-dia { width: 45px; } .col-time { width: 55px; } .col-res { width: 50px; font-weight: 600; } .col-note { width: auto; }
+        td { height: 55px; border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; position: relative; }
+        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 15px; outline: none; padding: 5px 0; font-variant-numeric: tabular-nums; }
+        .col-dia { width: 15%; } .col-data { width: 17%; }
         .weekend { background-color: #f9f9fb; }
-        .holiday-text { color: #ff3b30 !important; }
-        .today-row { background-color: #fff9c4 !important; border-left: 4px solid #ffcc00; }
+        .holiday-text { color: #ff3b30 !important; font-weight: bold; }
+        .today-row { background-color: #fff9c4 !important; }
+        .has-note::after { content: ''; position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; background: #007aff; border-radius: 50%; }
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="pb-20">
 
+    <div id="modal-overlay" onclick="if(event.target==this) closeModal()">
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl scale-up">
+            <h3 id="modal-date" class="text-lg font-bold mb-4 text-center"></h3>
+            <textarea id="modal-text" class="w-full h-32 p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe una nota..."></textarea>
+            <div class="flex gap-3 mt-5">
+                <button onclick="closeModal()" class="flex-1 p-3 text-sm font-bold text-gray-400">Cerrar</button>
+                <button onclick="saveNote()" class="flex-1 p-3 text-sm font-bold bg-black text-white rounded-xl">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-md mx-auto">
         <div class="header-sticky px-3">
             <div class="flex justify-between items-end pt-5 pb-2">
-                <div><h1 class="text-xl font-bold">Registro</h1><span class="text-xs font-bold text-blue-600">SEVILLA 2026</span></div>
+                <h1 class="text-xl font-bold tracking-tight">Registro de Horas</h1>
+                <span class="text-xs font-bold text-blue-600">SEVILLA 2026</span>
             </div>
             <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
             <div class="grid grid-cols-4 gap-1.5 py-2">
                 <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-sm font-bold">0</p></div>
                 <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Dif. Mes</p><p id="stat-real" class="text-sm font-bold">0:00</p></div>
-                <div class="ios-card p-2 text-center bg-indigo-50/50"><p class="text-[8px] font-bold text-indigo-600 uppercase text-[7px]">Nocturnas</p><p id="stat-noc" class="text-sm font-bold text-indigo-700">0:00</p></div>
+                <div class="ios-card p-2 text-center bg-indigo-50/50"><p class="text-[8px] font-bold text-indigo-600 uppercase">Nocturnas</p><p id="stat-noc" class="text-sm font-bold text-indigo-700">0:00</p></div>
                 <div class="ios-card p-2 text-center bg-green-50"><p class="text-[8px] font-bold text-green-700 uppercase">Extra (1.5)</p><p id="stat-extra" class="text-sm font-bold text-green-700">0:00</p></div>
             </div>
             <div class="ios-card rounded-b-none border-b-0 shadow-none">
                 <table>
                     <thead>
-                        <tr><th class="col-dia">Día</th><th class="col-time">Ent.</th><th class="col-time">Sal.</th><th class="col-res text-blue-600">Real</th><th class="col-res text-indigo-600">Noc.</th><th class="col-note">Nota</th></tr>
+                        <tr><th class="col-dia">Día</th><th class="col-data">Ent.</th><th class="col-data">Sal.</th><th class="col-data text-blue-600">Real</th><th class="col-data">Obj.</th><th class="col-data">Dif.</th></tr>
                     </thead>
                 </table>
             </div>
@@ -55,11 +69,12 @@
         <div class="px-3 pt-1">
             <div class="ios-card rounded-t-none border-t-0 mb-4">
                 <table id="main-table">
-                    <tbody id="table-body" class="text-xs"></tbody>
+                    <colgroup><col class="col-dia"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data"></colgroup>
+                    <tbody id="table-body" class="text-sm"></tbody>
                 </table>
             </div>
             <div class="ios-card p-4 bg-[#1c1c1e] text-white flex justify-between items-center mb-6">
-                <p class="text-[10px] font-bold uppercase opacity-60">Saldo Anual + Nocturnas</p>
+                <p class="text-[10px] font-bold uppercase opacity-60">Saldo Anual Total</p>
                 <span id="stat-total" class="text-xl font-bold font-mono">00:00</span>
             </div>
             <div class="flex flex-col gap-2 mb-10">
@@ -77,12 +92,12 @@
     <script>
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
-        // Festivos Sevilla 2026
         const holidays = {"1-1":1, "1-6":1, "2-28":1, "4-2":1, "4-3":1, "4-22":1, "5-1":1, "6-4":1, "8-15":1, "10-12":1, "11-2":1, "12-7":1, "12-8":1, "12-25":1};
         
         let currentYear = 2026;
         let currentMonthIdx = new Date().getMonth();
-        let data = JSON.parse(localStorage.getItem('horas_v13')) || {};
+        let data = JSON.parse(localStorage.getItem('horas_final_v1')) || {};
+        let activeKey = null;
 
         function formatTime(val) {
             if(!val) return "";
@@ -104,7 +119,7 @@
                 let hourOfDay = h % 24;
                 if(hourOfDay >= 22 || hourOfDay < 6) nightlyHours += 0.25;
             }
-            return nightlyHours * 0.25; // 15 min (0.25h) de premio por cada hora trabajada
+            return nightlyHours * 0.25; 
         }
 
         function renderTable() {
@@ -135,15 +150,15 @@
                 else if(isWE || hName) row.className = "weekend";
 
                 row.innerHTML = `
-                    <td class="col-dia">
+                    <td class="col-dia ${dD.note ? 'has-note' : ''}" onclick="openNote('${key}', ${d})">
                         <div class="text-[8px] font-bold ${isWE || hName ? 'holiday-text' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
                         <div class="text-xs font-bold">${d}</div>
                     </td>
-                    <td class="col-time"><input type="text" inputmode="decimal" value="${dD.in||''}" onblur="upd('${key}','in',this.value)" placeholder="--:--"></td>
-                    <td class="col-time"><input type="text" inputmode="decimal" value="${dD.out||''}" onblur="upd('${key}','out',this.value)" placeholder="--:--"></td>
-                    <td class="col-res text-blue-600">${worked > 0 ? dToC(worked) : '-'}</td>
-                    <td class="col-res text-indigo-600">${noc > 0 ? dToC(noc) : ''}</td>
-                    <td class="col-note"><input type="text" value="${dD.note||''}" onblur="upd('${key}','note',this.value)" class="text-left px-2 text-[10px] text-gray-500" placeholder="..."></td>
+                    <td class="col-data"><input type="text" inputmode="decimal" value="${dD.in||''}" onblur="upd('${key}','in',this.value)" placeholder="--:--"></td>
+                    <td class="col-data"><input type="text" inputmode="decimal" value="${dD.out||''}" onblur="upd('${key}','out',this.value)" placeholder="--:--"></td>
+                    <td class="col-data font-semibold text-blue-600">${worked > 0 ? dToC(worked) : '-'}</td>
+                    <td class="col-data"><input type="text" inputmode="decimal" value="${dD.obj||'07:36'}" onblur="upd('${key}','obj',this.value)"></td>
+                    <td class="col-data font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff > 0 ? '+' : '') + dToC(diff) : ''}</td>
                 `;
                 body.appendChild(row);
             }
@@ -153,10 +168,26 @@
             }
         }
 
+        function openNote(key, d) {
+            activeKey = key;
+            document.getElementById('modal-date').innerText = `${d} de ${months[currentMonthIdx]}`;
+            document.getElementById('modal-text').value = data[key]?.note || "";
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+        function saveNote() {
+            if(!data[activeKey]) data[activeKey] = { in: '', out: '', obj: '07:36', note: '' };
+            data[activeKey].note = document.getElementById('modal-text').value;
+            localStorage.setItem('horas_final_v1', JSON.stringify(data));
+            closeModal(); renderTable();
+        }
+
         function upd(k, f, v) {
             if(!data[k]) data[k] = { in: '', out: '', obj: '07:36', note: '' };
-            data[k][f] = (f === 'note') ? v : (v ? formatTime(v) : '');
-            localStorage.setItem('horas_v13', JSON.stringify(data));
+            data[k][f] = v ? formatTime(v) : (f === 'obj' ? '07:36' : '');
+            localStorage.setItem('horas_final_v1', JSON.stringify(data));
             renderTable();
         }
 
@@ -188,12 +219,14 @@
         }
 
         function exportToCSV() {
-            let csv = "\uFEFFFecha;Entrada;Salida;Real;Nocturna;Nota\n";
+            let csv = "\uFEFFFecha;Entrada;Salida;Real;Objetivo;Diferencia;Nota\n";
             Object.keys(data).sort().forEach(k => {
-                const d = data[k]; if(d.in) csv += `${k};${d.in};${d.out};${d.obj};${calcNightly(d.in, d.out)};${d.note}\n`;
+                const d = data[k]; if(d.in) {
+                    let w = tToD(d.out) - tToD(d.in); if(w < 0) w += 24;
+                    csv += `${k};${d.in};${d.out};${dToC(w)};${d.obj};${dToC(w-tToD(d.obj))};"${d.note||''}"\n`;
+                }
             });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `horas_2026.csv`; a.click();
+            const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); a.download = `horas_sevilla.csv`; a.click();
         }
 
         function downloadJSON() {
@@ -202,7 +235,7 @@
 
         document.getElementById('file-input').onchange = (e) => {
             const reader = new FileReader();
-            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_v13', JSON.stringify(data)); renderTable(); };
+            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_final_v1', JSON.stringify(data)); renderTable(); };
             reader.readAsText(e.target.files[0]);
         };
 
