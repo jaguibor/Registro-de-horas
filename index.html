@@ -9,7 +9,7 @@
     
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
-    <link rel="manifest" href="manifest.json?v=6">
+    <link rel="manifest" href="manifest.json?v=7">
     
     <title>Registro de Horas</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,7 +21,7 @@
         table { border-collapse: collapse; width: 100%; table-layout: fixed; }
         th { background: #fbfbfd; color: #8e8e93; font-size: 9px; text-transform: uppercase; padding: 12px 0; text-align: center; font-weight: 700; border-bottom: 0.5px solid #e5e5ea; }
         td { height: 55px; border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; position: relative; }
-        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 15px; outline: none; padding: 5px 0; font-variant-numeric: tabular-nums; }
+        input, select { width: 100%; border: none; background: transparent; text-align: center; font-size: 15px; outline: none; padding: 5px 0; font-variant-numeric: tabular-nums; color: inherit; }
         .col-dia { width: 15%; } .col-data { width: 17%; }
         .weekend { background-color: #f9f9fb; }
         .holiday-text { color: #ff3b30 !important; font-weight: bold; }
@@ -29,6 +29,7 @@
         .has-note::after { content: ''; position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; background: #007aff; border-radius: 50%; }
         #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .year-select { background: #e5e5ea; border-radius: 8px; padding: 2px 8px; font-size: 14px; font-weight: bold; width: auto; appearance: none; }
     </style>
 </head>
 <body class="pb-20">
@@ -46,9 +47,10 @@
 
     <div class="max-w-md mx-auto">
         <div class="header-sticky px-3">
-            <div class="flex justify-between items-end pt-5 pb-2">
-                <h1 class="text-xl font-bold tracking-tight">Registro de Horas</h1>
-                <span class="text-xs font-bold text-blue-600">SEVILLA 2026</span>
+            <div class="flex justify-between items-center pt-5 pb-2">
+                <h1 class="text-xl font-bold tracking-tight">Registro</h1>
+                <select id="year-selector" class="year-select" onchange="changeYear(this.value)">
+                    </select>
             </div>
             <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
             <div class="grid grid-cols-4 gap-1.5 py-2">
@@ -74,7 +76,7 @@
                 </table>
             </div>
             <div class="ios-card p-4 bg-[#1c1c1e] text-white flex justify-between items-center mb-6">
-                <p class="text-[10px] font-bold uppercase opacity-60">Saldo Total Anual</p>
+                <p class="text-[10px] font-bold uppercase opacity-60">Saldo Anual Total</p>
                 <span id="stat-total" class="text-xl font-bold font-mono">00:00</span>
             </div>
             <div class="flex flex-col gap-2 mb-10">
@@ -92,12 +94,23 @@
     <script>
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
-        const holidays = {"1-1":1, "1-6":1, "2-28":1, "4-2":1, "4-3":1, "4-22":1, "5-1":1, "6-4":1, "8-15":1, "10-12":1, "11-2":1, "12-7":1, "12-8":1, "12-25":1};
+        // Festivos Nacionales España Básicos
+        const holidays = {"1-1":1, "1-6":1, "5-1":1, "8-15":1, "10-12":1, "11-1":1, "12-6":1, "12-8":1, "12-25":1};
         
-        let currentYear = 2026;
+        let currentYear = new Date().getFullYear();
         let currentMonthIdx = new Date().getMonth();
-        let data = JSON.parse(localStorage.getItem('horas_final_v1')) || {};
+        let data = JSON.parse(localStorage.getItem('horas_multiy_v1')) || {};
         let activeKey = null;
+
+        function initYearSelector() {
+            const sel = document.getElementById('year-selector');
+            for(let y=2024; y<=2030; y++) {
+                const opt = document.createElement('option');
+                opt.value = y; opt.innerText = y;
+                if(y === currentYear) opt.selected = true;
+                sel.appendChild(opt);
+            }
+        }
 
         function formatTime(val) {
             if(!val) return "";
@@ -135,7 +148,7 @@
                 const key = `${currentYear}-${currentMonthIdx + 1}-${d}`;
                 const dD = data[key] || { in: '', out: '', obj: '07:36', note: '' };
                 const isWE = date.getDay() === 0 || date.getDay() === 6;
-                const hName = holidays[`${currentMonthIdx + 1}-${d}`];
+                const isHoliday = holidays[`${currentMonthIdx + 1}-${d}`];
 
                 let worked = 0, diff = 0, noc = 0;
                 if(dD.in && dD.out) {
@@ -147,11 +160,11 @@
 
                 const row = document.createElement('tr');
                 if(key === todayKey) { row.className = "today-row"; row.id = "scroll-target"; }
-                else if(isWE || hName) row.className = "weekend";
+                else if(isWE || isHoliday) row.className = "weekend";
 
                 row.innerHTML = `
                     <td class="col-dia ${dD.note ? 'has-note' : ''}" onclick="openNote('${key}', ${d})">
-                        <div class="text-[8px] font-bold ${isWE || hName ? 'holiday-text' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
+                        <div class="text-[8px] font-bold ${isWE || isHoliday ? 'holiday-text' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
                         <div class="text-xs font-bold">${d}</div>
                     </td>
                     <td class="col-data"><input type="text" inputmode="decimal" value="${dD.in||''}" onblur="upd('${key}','in',this.value)" placeholder="--:--"></td>
@@ -163,14 +176,14 @@
                 body.appendChild(row);
             }
             updateStats(mDays, mReal, mNoc);
-            if(currentMonthIdx === today.getMonth()) {
+            if(currentMonthIdx === today.getMonth() && currentYear === today.getFullYear()) {
                 setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
             }
         }
 
         function openNote(key, d) {
             activeKey = key;
-            document.getElementById('modal-date').innerText = `${d} de ${months[currentMonthIdx]}`;
+            document.getElementById('modal-date').innerText = `${d} de ${months[currentMonthIdx]} ${currentYear}`;
             document.getElementById('modal-text').value = data[key]?.note || "";
             document.getElementById('modal-overlay').style.display = 'flex';
         }
@@ -180,14 +193,14 @@
         function saveNote() {
             if(!data[activeKey]) data[activeKey] = { in: '', out: '', obj: '07:36', note: '' };
             data[activeKey].note = document.getElementById('modal-text').value;
-            localStorage.setItem('horas_final_v1', JSON.stringify(data));
+            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
             closeModal(); renderTable();
         }
 
         function upd(k, f, v) {
             if(!data[k]) data[k] = { in: '', out: '', obj: '07:36', note: '' };
             data[k][f] = v ? formatTime(v) : (f === 'obj' ? '07:36' : '');
-            localStorage.setItem('horas_final_v1', JSON.stringify(data));
+            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
             renderTable();
         }
 
@@ -195,25 +208,27 @@
             document.getElementById('stat-days').innerText = d;
             document.getElementById('stat-real').innerText = (r >= 0 ? '+' : '') + dToC(r);
             document.getElementById('stat-noc').innerText = dToC(n);
-            
-            // CÁLCULO CORREGIDO: (Dif * 1.5) + Nocturnas lineales
             let extraConNoc = (r * 1.5) + n;
             document.getElementById('stat-extra').innerText = (extraConNoc >= 0 ? '+' : '') + dToC(extraConNoc);
             
             let totalAnual = 0;
-            Object.values(data).forEach(day => {
-                if(day.in && day.out) {
-                    let w = tToD(day.out) - tToD(day.in); if(w < 0) w += 24;
-                    let dif = w - tToD(day.obj || '07:36');
-                    let nc = calcNightly(day.in, day.out);
-                    // (Diferencia acumulada * 1.5) + Horas nocturnas lineales
-                    totalAnual += (dif * 1.5) + nc;
+            Object.keys(data).forEach(key => {
+                if(key.startsWith(currentYear)) {
+                    const day = data[key];
+                    if(day.in && day.out) {
+                        let w = tToD(day.out) - tToD(day.in); if(w < 0) w += 24;
+                        let dif = w - tToD(day.obj || '07:36');
+                        let nc = calcNightly(day.in, day.out);
+                        totalAnual += (dif * 1.5) + nc;
+                    }
                 }
             });
             document.getElementById('stat-total').innerText = dToC(totalAnual);
         }
 
         function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(); }
+        function changeYear(y) { currentYear = parseInt(y); renderTable(); }
+
         function renderTabs() {
             document.getElementById('month-tabs').innerHTML = months.map((m, i) => `
                 <button onclick="changeMonth(${i})" class="flex-none px-4 py-2 rounded-full text-[10px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">
@@ -230,20 +245,20 @@
                     csv += `${k};${d.in};${d.out};${dToC(w)};${d.obj};${dToC(w-tToD(d.obj))};"${d.note||''}"\n`;
                 }
             });
-            const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); a.download = `horas_sevilla.csv`; a.click();
+            const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); a.download = `registro_horas_${currentYear}.csv`; a.click();
         }
 
         function downloadJSON() {
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type: 'application/json'})); a.download = "backup.json"; a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type: 'application/json'})); a.download = "backup_completo.json"; a.click();
         }
 
         document.getElementById('file-input').onchange = (e) => {
             const reader = new FileReader();
-            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_final_v1', JSON.stringify(data)); renderTable(); };
+            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_multiy_v1', JSON.stringify(data)); renderTable(); };
             reader.readAsText(e.target.files[0]);
         };
 
-        window.onload = () => { renderTabs(); renderTable(); };
+        window.onload = () => { initYearSelector(); renderTabs(); renderTable(); };
     </script>
 </body>
 </html>
