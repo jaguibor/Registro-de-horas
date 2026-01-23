@@ -1,6 +1,6 @@
 {
   "name": "Registro de Horas",
-  "short_name": "Registro de Horas",
+  "short_name": "Registro",
   "description": "Control de jornada laboral",
   "start_url": "./index.html",
   "display": "standalone",
@@ -8,10 +8,10 @@
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "https://fonts.gstatic.com/s/i/short-term/release/googlesymbols/history/default/512px.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2088/2088617.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
