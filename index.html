@@ -9,7 +9,7 @@
     
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
-    <link rel="manifest" href="manifest.json?v=8">
+    <link rel="manifest" href="manifest.json?v=9">
     
     <title>Registro de Horas</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,7 +35,7 @@
 <body class="pb-20">
 
     <div id="modal-overlay" onclick="if(event.target==this) closeModal()">
-        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl scale-up">
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl">
             <h3 id="modal-date" class="text-lg font-bold mb-4 text-center"></h3>
             <textarea id="modal-text" class="w-full h-32 p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe una nota..."></textarea>
             <div class="flex gap-3 mt-5">
@@ -133,7 +133,7 @@
             return nightlyHours * 0.25; 
         }
 
-        function renderTable() {
+        function renderTable(shouldScroll = false) {
             const body = document.getElementById('table-body'); body.innerHTML = "";
             const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
             const today = new Date();
@@ -174,7 +174,9 @@
                 body.appendChild(row);
             }
             updateStats(mDays, mReal, mNoc);
-            if(currentMonthIdx === today.getMonth() && currentYear === today.getFullYear()) {
+
+            // El scroll solo ocurre si se pide explícitamente (al cargar o cambiar de mes)
+            if(shouldScroll && currentMonthIdx === today.getMonth() && currentYear === today.getFullYear()) {
                 setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
             }
         }
@@ -192,14 +194,19 @@
             if(!data[activeKey]) data[activeKey] = { in: '', out: '', obj: '07:36', note: '' };
             data[activeKey].note = document.getElementById('modal-text').value;
             localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
-            closeModal(); renderTable();
+            closeModal(); renderTable(false); // No scrollear al guardar nota
         }
 
         function upd(k, f, v) {
             if(!data[k]) data[k] = { in: '', out: '', obj: '07:36', note: '' };
-            data[k][f] = v ? formatTime(v) : (f === 'obj' ? '07:36' : '');
-            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
-            renderTable();
+            const oldVal = data[k][f];
+            const newVal = v ? (f === 'note' ? v : formatTime(v)) : (f === 'obj' ? '07:36' : '');
+            
+            if(oldVal !== newVal) {
+                data[k][f] = newVal;
+                localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
+                renderTable(false); // No scrollear al escribir datos
+            }
         }
 
         function updateStats(d, r, n) {
@@ -224,8 +231,8 @@
             document.getElementById('stat-total').innerText = dToC(totalAnual);
         }
 
-        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(); }
-        function changeYear(y) { currentYear = parseInt(y); renderTable(); }
+        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(true); }
+        function changeYear(y) { currentYear = parseInt(y); renderTable(true); }
 
         function renderTabs() {
             document.getElementById('month-tabs').innerHTML = months.map((m, i) => `
@@ -252,11 +259,11 @@
 
         document.getElementById('file-input').onchange = (e) => {
             const reader = new FileReader();
-            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_multiy_v1', JSON.stringify(data)); renderTable(); };
+            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_multiy_v1', JSON.stringify(data)); renderTable(true); };
             reader.readAsText(e.target.files[0]);
         };
 
-        window.onload = () => { initYearSelector(); renderTabs(); renderTable(); };
+        window.onload = () => { initYearSelector(); renderTabs(); renderTable(true); };
     </script>
 </body>
 </html>
