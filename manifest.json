@@ -1,14 +1,14 @@
 {
   "name": "Registro de Horas",
   "short_name": "Registro",
-  "description": "Gestión profesional de jornada laboral",
+  "description": "Control de jornada laboral",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#F2F2F7",
   "theme_color": "#1c1c1e",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2784/2784459.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/443/443048.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
