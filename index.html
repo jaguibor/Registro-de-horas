@@ -3,83 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Horas 2026">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972531.png">
     <link rel="manifest" href="manifest.json">
-    
-    <title>Registro 2026</title>
+    <title>Horas 2026 Sevilla</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--ios-bg); -webkit-font-smoothing: antialiased; margin: 0; }
-        
-        .header-sticky {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background-color: var(--ios-bg);
-            padding-top: env(safe-area-inset-top);
-        }
-
+        .header-sticky { position: sticky; top: 0; z-index: 100; background-color: var(--ios-bg); padding-top: env(safe-area-inset-top); }
         .ios-card { background: white; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
-        
         table { border-collapse: collapse; width: 100%; table-layout: fixed; }
         th { background: #f9f9f9; color: #666; font-size: 9px; text-transform: uppercase; padding: 12px 0; border-bottom: 1px solid #eee; text-align: center; }
-        td { height: 52px; border-bottom: 1px solid #f2f2f2; text-align: center; vertical-align: middle; }
-        
-        /* COLUMNAS PERFECTAMENTE IGUALADAS */
-        .col-dia { width: 15%; }
-        .col-data { width: 17%; }
-
-        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; color: #333; outline: none; padding: 10px 0; font-variant-numeric: tabular-nums; }
-        input:focus { background: #eef6ff; color: #2563eb; border-radius: 8px; }
-
+        td { height: 55px; border-bottom: 1px solid #f2f2f2; text-align: center; vertical-align: middle; position: relative; }
+        .col-dia { width: 15%; } .col-data { width: 17%; }
+        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; color: #333; outline: none; padding: 10px 0; }
         .weekend { background-color: #fafafa; }
+        .holiday { color: #dc2626 !important; }
+        .today-row { background-color: #fef9c3 !important; }
+        .has-note::after { content: ''; position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; background: #3b82f6; border-radius: 50%; }
         .hidden { display: none !important; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .tap-effect:active { opacity: 0.6; transform: scale(0.98); }
+        
+        /* Modal simple */
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
     </style>
 </head>
 <body class="pb-20">
 
+    <div id="modal-overlay" class="hidden">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+            <h3 id="modal-title" class="text-lg font-bold mb-1">Nota del día</h3>
+            <p id="modal-holiday-desc" class="text-xs text-red-500 mb-4 font-bold"></p>
+            <textarea id="modal-textarea" class="w-full h-32 p-3 border rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe aquí..."></textarea>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeModal()" class="flex-1 p-3 text-sm font-bold text-gray-500">Cerrar</button>
+                <button onclick="saveNote()" class="flex-1 p-3 text-sm font-bold bg-blue-600 text-white rounded-xl">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-md mx-auto">
         <div class="header-sticky px-3 shadow-sm">
             <div class="flex justify-between items-center pt-4 pb-2">
-                <h1 class="text-2xl font-bold tracking-tight">Registro 2026</h1>
-                <button id="btn-view" class="bg-blue-600 text-white text-[10px] px-4 py-2 rounded-full font-bold uppercase tracking-wider tap-effect">Resumen</button>
+                <h1 class="text-2xl font-bold tracking-tight">Sevilla 2026</h1>
+                <button id="btn-view" class="bg-blue-600 text-white text-[10px] px-4 py-2 rounded-full font-bold uppercase">Resumen</button>
             </div>
-
             <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
-
             <div id="quick-stats" class="grid grid-cols-3 gap-2 py-2">
                 <div class="ios-card p-2 text-center">
                     <p class="text-[8px] font-bold text-gray-400 uppercase">Días</p>
                     <p id="stat-days" class="text-lg font-bold">0</p>
                 </div>
-                <div class="ios-card p-2 text-center">
-                    <p class="text-[8px] font-bold text-gray-400 uppercase">Real (1x)</p>
-                    <p id="stat-real" class="text-lg font-bold text-gray-600">0:00</p>
-                </div>
-                <div class="ios-card p-2 text-center bg-green-50 border border-green-100">
-                    <p class="text-[8px] font-bold text-green-700 uppercase">Extra (1.5x)</p>
-                    <p id="stat-extra" class="text-lg font-bold text-green-700">0:00</p>
-                </div>
+                <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Real (1x)</p><p id="stat-real" class="text-lg font-bold text-gray-600">0:00</p></div>
+                <div class="ios-card p-2 text-center bg-green-50"><p class="text-[8px] font-bold text-green-700 uppercase">Extra (1.5x)</p><p id="stat-extra" class="text-lg font-bold text-green-700">0:00</p></div>
             </div>
-
-            <div class="ios-card rounded-b-none border-b-0">
+            <div class="ios-card rounded-b-none">
                 <table>
                     <thead>
-                        <tr>
-                            <th class="col-dia">Día</th>
-                            <th class="col-data">Ent.</th>
-                            <th class="col-data">Sal.</th>
-                            <th class="col-data text-blue-600">Real</th>
-                            <th class="col-data">Obj.</th>
-                            <th class="col-data">Dif.</th>
-                        </tr>
+                        <tr><th class="col-dia">Día</th><th class="col-data">Ent.</th><th class="col-data">Sal.</th><th class="col-data text-blue-600">Real</th><th class="col-data">Obj.</th><th class="col-data">Dif.</th></tr>
                     </thead>
                 </table>
             </div>
@@ -88,34 +70,22 @@
         <div id="view-main" class="px-3">
             <div class="ios-card rounded-t-none border-t-0 mb-4">
                 <table id="main-table">
-                    <colgroup>
-                        <col class="col-dia"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data">
-                    </colgroup>
+                    <colgroup><col class="col-dia"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data"></colgroup>
                     <tbody id="table-body" class="text-sm"></tbody>
                 </table>
             </div>
-
             <div class="ios-card p-4 bg-gray-900 text-white flex justify-between items-center mb-6">
-                <span class="text-xs font-bold uppercase opacity-60">Saldo Total Anual</span>
-                <span id="stat-total" class="text-xl font-bold font-mono">00:00</span>
+                <span class="text-xs font-bold uppercase opacity-60">Saldo Total 2026</span>
+                <span id="stat-total" class="text-xl font-bold">00:00</span>
             </div>
-
-            <div class="flex flex-col gap-2 mb-10">
-                <div class="flex gap-2">
-                    <button id="btn-download" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase tap-effect">Backup</button>
-                    <button id="btn-import" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase tap-effect">Cargar</button>
-                </div>
-                <button id="btn-reset" class="w-full text-red-500 text-[10px] font-bold uppercase p-2 opacity-50">Borrar Datos Mes Actual</button>
+            <div class="flex gap-2 mb-10">
+                <button onclick="exportToCSV()" class="flex-1 bg-green-600 text-white p-3 rounded-xl text-[10px] font-bold uppercase shadow-sm">Exportar Excel (CSV)</button>
+                <button id="btn-import" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase shadow-sm">Cargar Backup</button>
             </div>
         </div>
 
         <div id="view-summary" class="px-3 hidden">
-            <div class="ios-card">
-                <table class="text-sm">
-                    <thead><tr><th class="p-4 text-left">Mes</th><th>Días</th><th class="p-4 text-right">Extra (1.5x)</th></tr></thead>
-                    <tbody id="summary-body"></tbody>
-                </table>
-            </div>
+            <div class="ios-card"><table class="text-sm"><tbody id="summary-body"></tbody></table></div>
         </div>
     </div>
 
@@ -124,13 +94,19 @@
     <script>
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
-        let currentMonthIdx = new Date().getMonth();
-        let data = JSON.parse(localStorage.getItem('horas_2026_v5')) || {};
+        
+        // FESTIVOS SEVILLA 2026 (Estimados y Fijos)
+        const holidays2026 = {
+            "1-1": "Año Nuevo", "1-6": "Epifanía", "2-28": "Día de Andalucía",
+            "4-2": "Jueves Santo", "4-3": "Viernes Santo", "4-22": "Miércoles de Feria",
+            "5-1": "Fiesta del Trabajo", "6-4": "Corpus Christi", "8-15": "Asunción",
+            "10-12": "Fiesta Nacional", "11-2": "Todos los Santos (Lunes)",
+            "12-7": "Día Constitución (Lunes)", "12-8": "Inmaculada", "12-25": "Navidad"
+        };
 
-        // Registro de Service Worker para PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
-        }
+        let currentMonthIdx = new Date().getMonth();
+        let data = JSON.parse(localStorage.getItem('horas_2026_v7')) || {};
+        let activeKey = null;
 
         function formatTime(val) {
             if(!val) return "";
@@ -164,45 +140,42 @@
             return `${sign}${h}:${m.toString().padStart(2, '0')}`;
         }
 
-        function renderTabs() {
-            const container = document.getElementById('month-tabs');
-            container.innerHTML = months.map((m, i) => `
-                <button onclick="changeMonth(${i})" class="flex-none px-5 py-2 rounded-full text-[11px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border'}">
-                    ${m.substring(0,3).toUpperCase()}
-                </button>
-            `).join('');
-        }
-
-        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(); }
-
         function renderTable() {
             const body = document.getElementById('table-body');
             body.innerHTML = "";
             const year = 2026;
             const daysInMonth = new Date(year, currentMonthIdx + 1, 0).getDate();
+            const todayKey = `${year}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
+            
             let mReal = 0, mExtra = 0, mDays = 0;
 
             for(let d = 1; d <= daysInMonth; d++) {
                 const date = new Date(year, currentMonthIdx, d);
                 const key = `${year}-${currentMonthIdx + 1}-${d}`;
-                const dayData = data[key] || { in: '', out: '', obj: '07:36' };
-                const isWE = date.getDay() === 0 || date.getDay() === 6;
-                let worked = 0, diff = 0;
+                const hKey = `${currentMonthIdx + 1}-${d}`;
+                const dayData = data[key] || { in: '', out: '', obj: '07:36', note: '' };
                 
+                const isWE = date.getDay() === 0 || date.getDay() === 6;
+                const holidayName = holidays2026[hKey];
+                const isToday = key === todayKey;
+                
+                let worked = 0, diff = 0;
                 if(dayData.in && dayData.out) {
                     worked = timeToDec(dayData.out) - timeToDec(dayData.in);
                     if(worked < 0) worked += 24;
-                    let objDec = timeToDec(formatTime(dayData.obj));
-                    diff = worked - objDec;
+                    diff = worked - timeToDec(dayData.obj);
                     mDays++; mReal += diff; mExtra += (diff * 1.5);
                 }
 
                 const row = document.createElement('tr');
-                if(isWE) row.className = "weekend";
+                row.id = isToday ? "scroll-target" : "";
+                if(isWE || holidayName) row.className = isToday ? "today-row" : "weekend";
+                else if(isToday) row.className = "today-row";
+
                 row.innerHTML = `
-                    <td class="col-dia">
-                        <div class="text-[8px] font-bold ${isWE ? 'text-red-400' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
-                        <div class="text-sm font-bold">${d}</div>
+                    <td class="col-dia ${dayData.note ? 'has-note' : ''}" onclick="openNote('${key}', '${holidayName || ''}')">
+                        <div class="text-[8px] font-bold ${holidayName || isWE ? 'holiday' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
+                        <div class="text-sm font-bold ${holidayName ? 'holiday underline' : ''}">${d}</div>
                     </td>
                     <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.in}" onblur="update('${key}','in',this.value)" placeholder="--:--"></td>
                     <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.out}" onblur="update('${key}','out',this.value)" placeholder="--:--"></td>
@@ -213,12 +186,35 @@
                 body.appendChild(row);
             }
             updateStats(mDays, mReal, mExtra);
+            if(currentMonthIdx === new Date().getMonth()) scrollToday();
         }
 
+        function scrollToday() {
+            const el = document.getElementById('scroll-target');
+            if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function openNote(key, holiday) {
+            activeKey = key;
+            if(!data[key]) data[key] = { in: '', out: '', obj: '07:36', note: '' };
+            document.getElementById('modal-title').innerText = `Día ${key.split('-')[2]} de ${months[currentMonthIdx]}`;
+            document.getElementById('modal-holiday-desc').innerText = holiday ? "★ " + holiday : "";
+            document.getElementById('modal-textarea').value = data[key].note || "";
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+
+        function saveNote() {
+            data[activeKey].note = document.getElementById('modal-textarea').value;
+            localStorage.setItem('horas_2026_v7', JSON.stringify(data));
+            closeModal(); renderTable();
+        }
+
+        function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+
         function update(key, field, val) {
-            if(!data[key]) data[key] = { in: '', out: '', obj: '07:36' };
+            if(!data[key]) data[key] = { in: '', out: '', obj: '07:36', note: '' };
             data[key][field] = formatTime(val);
-            localStorage.setItem('horas_2026_v5', JSON.stringify(data));
+            localStorage.setItem('horas_2026_v7', JSON.stringify(data));
             renderTable();
         }
 
@@ -232,23 +228,35 @@
                 if(day.in && day.out) {
                     let w = timeToDec(day.out) - timeToDec(day.in);
                     if(w < 0) w += 24;
-                    let o = timeToDec(formatTime(day.obj));
-                    total += (w - o) * 1.5;
+                    total += (w - timeToDec(day.obj)) * 1.5;
                 }
             });
             document.getElementById('stat-total').innerText = decToClock(total);
         }
 
-        document.getElementById('btn-reset').onclick = () => {
-            if(confirm("¿Seguro que quieres borrar este mes?")) {
-                const monthStr = `-${currentMonthIdx + 1}-`;
-                Object.keys(data).forEach(k => { if(k.includes(monthStr)) delete data[k]; });
-                localStorage.setItem('horas_2026_v5', JSON.stringify(data));
-                renderTable();
-            }
-        };
+        function exportToCSV() {
+            let csv = "Fecha,Entrada,Salida,Objetivo,Nota\n";
+            Object.keys(data).sort().forEach(k => {
+                const d = data[k];
+                csv += `${k},${d.in},${d.out},${d.obj},"${d.note || ''}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "registro_horas_2026.csv";
+            link.click();
+        }
 
-        // El resto de funciones (Resumen, Backup, Importar) siguen igual que la V5...
+        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(); }
+        function renderTabs() {
+            const container = document.getElementById('month-tabs');
+            container.innerHTML = months.map((m, i) => `
+                <button onclick="changeMonth(${i})" class="flex-none px-5 py-2 rounded-full text-[11px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border'}">
+                    ${m.substring(0,3).toUpperCase()}
+                </button>
+            `).join('');
+        }
+
         document.getElementById('btn-view').onclick = function() {
             const main = document.getElementById('view-main');
             const summ = document.getElementById('view-summary');
@@ -268,27 +276,13 @@
                         if(day.in && day.out) {
                             let w = timeToDec(day.out) - timeToDec(day.in);
                             if(w < 0) w += 24;
-                            let o = timeToDec(formatTime(day.obj));
-                            md++; me += (w - o) * 1.5;
+                            md++; me += (w - timeToDec(day.obj)) * 1.5;
                         }
                     }
                 });
-                return `<tr><td class="p-4 font-bold">${m}</td><td class="text-center">${md}</td><td class="p-4 text-right font-bold ${me >= 0 ? 'text-green-600' : 'text-red-500'}">${decToClock(me)}</td></tr>`;
+                return `<tr class="border-b"><td class="p-4 font-bold">${m}</td><td class="text-center">${md} d</td><td class="p-4 text-right font-bold ${me >= 0 ? 'text-green-600' : 'text-red-500'}">${decToClock(me)}</td></tr>`;
             }).join('');
         }
-
-        document.getElementById('btn-download').onclick = () => {
-            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `backup_horas_2026.json`; a.click();
-        };
-
-        document.getElementById('btn-import').onclick = () => document.getElementById('file-input').click();
-        document.getElementById('file-input').onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_2026_v5', JSON.stringify(data)); renderTable(); };
-            reader.readAsText(e.target.files[0]);
-        };
 
         window.onload = () => { renderTabs(); renderTable(); };
     </script>
