@@ -19,77 +19,111 @@
         
         input[type="text"] { -webkit-appearance: none; background: transparent; text-align: center; font-size: 15px; width: 100%; padding: 8px 0; border: none; font-variant-numeric: tabular-nums; }
         
-        .glass-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 0.5px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50; }
+        /* BLOQUE FIJO SUPERIOR */
+        .sticky-wrapper {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: var(--ios-bg); /* Fondo sólido para tapar el scroll */
+            padding-bottom: 5px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .glass-header { 
+            background: rgba(255, 255, 255, 0.95); 
+            border-bottom: 0.5px solid rgba(0,0,0,0.1); 
+        }
         
-        /* AJUSTES DE ANCHURA DE COLUMNAS */
-        .col-dia { width: 55px; } /* Más ancha para LUN, MAR... */
-        .col-hora { width: 52px; } 
-        .col-real { width: 48px; } 
-        .col-obj { width: 42px; } /* Ajustada para que no se vea descentrada */
-        .col-dif { width: 55px; }
+        /* AJUSTES DE COLUMNAS */
+        .col-dia { width: 55px; } 
+        .col-hora { width: 55px; } 
+        .col-real { width: 50px; } 
+        .col-obj { width: 45px; } 
+        .col-dif { width: 60px; text-align: center; } /* Forzado centro */
         
         .weekend-row { background-color: #F9F9F9; }
         .hidden-view { display: none !important; }
         .tap-effect:active { opacity: 0.6; transform: scale(0.97); transition: transform 0.1s; }
         
+        /* Ocultar barra scroll en pestañas */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         header { padding-top: env(safe-area-inset-top); }
         footer { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
-<body class="pb-20">
+<body class="pb-24">
     <div class="max-w-md mx-auto min-h-screen flex flex-col">
-        <header class="px-5 pt-8 pb-2 flex justify-between items-start mt-4">
+        
+        <header class="px-5 pt-6 pb-2 flex justify-between items-start mt-2 mb-1">
             <div>
                 <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Control Horario</h2>
                 <h1 class="text-3xl font-bold text-black tracking-tight">2026</h1>
             </div>
-            <button id="toggle-view-btn" class="bg-blue-600 text-white font-bold text-[10px] px-4 py-2 rounded-full uppercase tap-effect shadow-md shadow-blue-200">Resumen Anual</button>
+            <button id="toggle-view-btn" class="bg-blue-600 text-white font-bold text-[10px] px-4 py-2 rounded-full uppercase tap-effect shadow-blue-200 shadow-md">Resumen</button>
         </header>
 
         <div id="view-register">
-            <div class="sticky top-0 z-40 bg-[#F2F2F7] pt-2 pb-3 shadow-sm">
-                <div id="month-tabs" class="flex overflow-x-auto px-5 gap-2 no-scrollbar" style="-webkit-overflow-scrolling: touch;"></div>
-            </div>
-            <div class="px-3">
-                
-                <div class="grid grid-cols-3 gap-2 mb-4 text-center">
-                    <div class="ios-card p-2 shadow-sm flex flex-col justify-center">
-                        <span class="block text-[9px] text-gray-400 font-bold uppercase">Días</span>
-                        <span id="total-days-worked" class="text-xl font-bold text-gray-800">0</span>
-                    </div>
-                    <div class="ios-card p-2 shadow-sm border border-gray-100 flex flex-col justify-center">
-                        <span class="block text-[9px] text-gray-400 font-bold uppercase">Dif (1x)</span>
-                        <span id="month-diff-real" class="text-xl font-bold text-gray-600">0h</span>
-                    </div>
-                    <div class="ios-card p-2 bg-green-50/50 border border-green-100 shadow-sm flex flex-col justify-center">
-                        <span class="block text-[9px] text-green-700 font-bold uppercase">Extra (1.5x)</span>
-                        <span id="month-diff-multiplied" class="text-xl font-bold text-green-600">0h</span>
-                    </div>
+            
+            <div class="sticky-wrapper">
+                <div class="pt-2 pb-2">
+                    <div id="month-tabs" class="flex overflow-x-auto px-5 gap-2 no-scrollbar" style="-webkit-overflow-scrolling: touch;"></div>
                 </div>
 
-                <div class="ios-card border border-gray-200/60 mb-4">
+                <div class="px-3">
+                    <div class="grid grid-cols-3 gap-2 mb-2 text-center">
+                        <div class="ios-card py-2 px-1 shadow-sm flex flex-col justify-center bg-white border border-gray-100">
+                            <span class="block text-[8px] text-gray-400 font-bold uppercase tracking-wider">Días</span>
+                            <span id="total-days-worked" class="text-lg font-bold text-gray-800 leading-tight">0</span>
+                        </div>
+                        <div class="ios-card py-2 px-1 shadow-sm border border-gray-100 flex flex-col justify-center">
+                            <span class="block text-[8px] text-gray-400 font-bold uppercase tracking-wider">Dif (1x)</span>
+                            <span id="month-diff-real" class="text-lg font-bold text-gray-600 leading-tight">0h</span>
+                        </div>
+                        <div class="ios-card py-2 px-1 bg-green-50 border border-green-100 shadow-sm flex flex-col justify-center">
+                            <span class="block text-[8px] text-green-700 font-bold uppercase tracking-wider">Extra (1.5x)</span>
+                            <span id="month-diff-multiplied" class="text-lg font-bold text-green-700 leading-tight">0h</span>
+                        </div>
+                    </div>
+
+                    <div class="ios-card rounded-b-none border-b-0 border border-gray-200/60 shadow-sm">
+                        <table class="w-full text-left border-collapse table-fixed">
+                            <thead class="bg-gray-50 text-[9px] uppercase text-gray-500 font-bold border-b border-gray-200">
+                                <tr>
+                                    <th class="py-3 px-1 col-dia text-center">Día</th>
+                                    <th class="py-3 col-hora text-center">Ent.</th>
+                                    <th class="py-3 col-hora text-center">Sal.</th>
+                                    <th class="py-3 col-real text-center text-blue-600">Real</th>
+                                    <th class="py-3 col-obj text-center">Obj.</th>
+                                    <th class="py-3 col-dif text-center">Dif.</th> </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-3 -mt-1"> <div class="ios-card rounded-t-none border-t-0 border border-gray-200/60 mb-4">
                     <table class="w-full text-left border-collapse table-fixed">
-                        <thead class="glass-header text-[9px] uppercase text-gray-500 font-bold">
-                            <tr>
-                                <th class="py-3 px-1 col-dia text-center">Día</th>
-                                <th class="py-3 col-hora text-center">Ent.</th>
-                                <th class="py-3 col-hora text-center">Sal.</th>
-                                <th class="py-3 col-real text-center bg-blue-50/80 text-blue-700">Real</th>
-                                <th class="py-3 col-obj text-center">Obj.</th>
-                                <th class="py-3 px-1 col-dif text-right">Dif.</th>
-                            </tr>
-                        </thead>
+                        <colgroup>
+                            <col class="col-dia">
+                            <col class="col-hora">
+                            <col class="col-hora">
+                            <col class="col-real">
+                            <col class="col-obj">
+                            <col class="col-dif">
+                        </colgroup>
                         <tbody id="spreadsheet-body" class="text-[14px]"></tbody>
                     </table>
                 </div>
 
-                <div class="ios-card divide-y divide-gray-100 border border-gray-200/60 shadow-sm">
+                <div class="ios-card divide-y divide-gray-100 border border-gray-200/60 shadow-sm mb-6">
                     <div class="flex justify-between items-center p-3 text-xs text-gray-500 font-medium">
                         <span>Saldo Inicial Año</span>
                         <input type="text" inputmode="decimal" id="initial-balance-input" class="w-20 text-right font-bold text-blue-600 bg-gray-50 rounded px-2" placeholder="0">
                     </div>
                     <div class="flex justify-between items-center p-4 bg-gray-900 text-white font-bold uppercase tracking-wider">
-                        <span>Saldo Total (c/Extras)</span>
+                        <span>Saldo Total</span>
                         <span id="grand-total" class="text-lg">0h 0m</span>
                     </div>
                 </div>
@@ -107,7 +141,7 @@
             </div>
         </div>
 
-        <footer class="mt-8 mb-8 px-4 flex flex-col gap-3 justify-center items-center">
+        <footer class="mt-4 px-4 flex flex-col gap-3 justify-center items-center pb-8">
             <div class="flex gap-4">
                 <button id="download-btn" class="text-white bg-gray-800 px-4 py-2 rounded-lg text-[11px] font-bold uppercase shadow tap-effect">Guardar Backup</button>
                 <button id="import-btn" class="text-blue-600 bg-blue-50 px-4 py-2 rounded-lg text-[11px] font-bold uppercase tap-effect">Cargar Backup</button>
@@ -120,36 +154,65 @@
     <script>
         const currentYear = 2026;
         const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-        // CAMBIO 1: Días con 3 letras
         const dayShortNames = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
         
         let currentMonth = monthNames[new Date().getMonth()];
         let spreadsheetData = {};
 
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
-            });
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.error));
+        }
+
+        // --- LÓGICA DE TIEMPO INTELIGENTE ---
+        function parseTimeInput(str) {
+            if (!str) return null;
+            // Reemplaza punto y coma por dos puntos para estandarizar
+            let clean = str.trim().replace(/[.,]/g, ':');
+            
+            // Si el usuario escribe "8", asumimos "8:00"
+            if (!clean.includes(':')) {
+                if(clean.length <= 2) return `${clean}:00`; // "8" -> "8:00"
+                if(clean.length === 3) return `${clean[0]}:${clean.slice(1)}`; // "830" -> "8:30"
+                if(clean.length === 4) return `${clean.slice(0,2)}:${clean.slice(2)}`; // "0830" -> "08:30"
+            }
+            
+            // Asegurar formato HH:MM (añadir ceros)
+            let parts = clean.split(':');
+            let h = parts[0] || "0";
+            let m = parts[1] || "00";
+            if(m.length === 1) m = "0" + m;
+            return `${h}:${m}`;
         }
 
         function timeToDecimal(str) {
             if (!str) return 0;
-            const cleanStr = str.trim().replace(',', '.');
-            if(cleanStr.includes(':')) {
-                const parts = cleanStr.split(':');
+            // Aceptamos formato decimal directo (7.6) para objetivos
+            if (!str.includes(':') && str.includes('.')) return parseFloat(str);
+            
+            // Parseo estándar HH:MM
+            const cleanStr = str.replace(',', '.').replace('.', ':'); // Fallback
+            const parts = cleanStr.split(':');
+            if (parts.length === 2) {
                 return parseInt(parts[0]) + (parseInt(parts[1]) / 60);
             }
             return parseFloat(cleanStr) || 0;
         }
 
         function decimalToTime(decimal, short = false) {
-            const sign = decimal < -0.01 ? '-' : '';
+            const sign = decimal < -0.001 ? '-' : '';
             const abs = Math.abs(decimal);
             const hrs = Math.floor(abs);
             const mins = Math.round((abs - hrs) * 60);
-            if(mins === 60) return short ? `${sign}${hrs+1}:00` : `${sign}${hrs+1}h 00m`;
-            return short ? `${sign}${hrs}:${String(mins).padStart(2, '0')}` : `${sign}${hrs}h ${mins}m`;
+            
+            let finalH = hrs;
+            let finalM = mins;
+            if(finalM === 60) { finalH++; finalM = 0; }
+            
+            return short 
+                ? `${sign}${finalH}:${String(finalM).padStart(2, '0')}` 
+                : `${sign}${finalH}h ${String(finalM).padStart(2, '0')}m`;
         }
+        // ------------------------------------
 
         function renderTabs() {
             const container = document.getElementById('month-tabs');
@@ -180,38 +243,52 @@
                 const dayOfWeek = date.getDay();
                 const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
                 
-                tr.className = `border-b border-gray-100 h-11 ${isWeekend ? 'weekend-row' : ''}`;
+                tr.className = `border-b border-gray-50 h-11 ${isWeekend ? 'weekend-row' : ''}`;
                 
-                // CAMBIO VISUAL DÍAS (LUN 1)
                 tr.innerHTML = `<td class="text-center"><div class="flex flex-col leading-none items-center justify-center"><span class="text-[9px] font-bold ${isWeekend ? 'text-red-400' : 'text-gray-400'} uppercase tracking-tighter">${dayShortNames[dayOfWeek]}</span><span class="text-[13px] font-bold text-gray-700">${date.getDate()}</span></div></td>`;
                 
+                // INPUTS INTELIGENTES
                 ['start', 'end'].forEach(f => {
                     const td = document.createElement('td');
                     const inp = document.createElement('input');
-                    inp.type="text"; inp.inputMode="decimal"; inp.placeholder = "--:--";
+                    inp.type="text"; 
+                    inp.inputMode="decimal"; 
+                    inp.placeholder = "--.--";
                     inp.value = data[f] || '';
                     inp.className = "text-gray-800 font-medium placeholder-gray-300 focus:bg-blue-50 focus:text-blue-600 rounded transition-colors";
-                    inp.onchange = (e) => { updateData(key, f, e.target.value); };
+                    
+                    // Al perder el foco (blur), formateamos lo que escribió el usuario
+                    inp.onblur = (e) => {
+                        const raw = e.target.value;
+                        if(raw) {
+                            const formatted = parseTimeInput(raw); // Convierte "8.15" -> "8:15"
+                            e.target.value = formatted;
+                            updateData(key, f, formatted);
+                        } else {
+                            updateData(key, f, "");
+                        }
+                    };
+                    // Enter key también dispara blur
+                    inp.onkeydown = (e) => { if(e.key === 'Enter') e.target.blur(); };
+
                     td.appendChild(inp); tr.appendChild(td);
                 });
 
                 tr.innerHTML += `<td class="bg-blue-50/40 font-bold text-center text-blue-700 text-[13px]">${data.worked || '—'}</td>`;
                 
-                // CAMBIO OBJ: Alineación centrada estricta
                 const tdDue = document.createElement('td');
-                tdDue.className = "text-center"; // Centrado forzado
+                tdDue.className = "text-center";
                 const inpDue = document.createElement('input');
                 inpDue.type="text"; inpDue.inputMode="decimal";
                 inpDue.value = data.due || '';
                 inpDue.placeholder = "7.6";
-                inpDue.className = "text-gray-400 text-[12px] text-center"; // Input centrado
+                inpDue.className = "text-gray-400 text-[12px] text-center";
                 inpDue.onchange = (e) => { updateData(key, 'due', e.target.value); };
                 tdDue.appendChild(inpDue); tr.appendChild(tdDue);
 
                 const diffVal = timeToDecimal(data.worked) - timeToDecimal(data.due);
                 const colorClass = diffVal >= 0 ? 'text-green-600' : 'text-red-500';
-                const signDisplay = diffVal > 0 ? '+' : '';
-                tr.innerHTML += `<td class="text-right px-2 font-bold text-[12px] ${colorClass}">${data.worked ? signDisplay + decimalToTime(diffVal, true) : ''}</td>`;
+                tr.innerHTML += `<td class="text-center px-1 font-bold text-[12px] ${colorClass}">${data.worked ? (diffVal > 0 ? '+' : '') + decimalToTime(diffVal, true) : ''}</td>`;
                 
                 tbody.appendChild(tr);
                 date.setDate(date.getDate() + 1);
@@ -222,22 +299,38 @@
         function updateData(key, field, value) {
             if (!spreadsheetData[key]) spreadsheetData[key] = {};
             spreadsheetData[key][field] = value;
+            
             if(spreadsheetData[key].start && spreadsheetData[key].end){
-                const diff = timeToDecimal(spreadsheetData[key].end) - timeToDecimal(spreadsheetData[key].start);
-                const finalDiff = diff < 0 ? diff + 24 : diff;
-                spreadsheetData[key].worked = decimalToTime(finalDiff, true);
+                // Usamos la función robusta timeToDecimal que ya maneja los dos puntos
+                const startDec = timeToDecimal(spreadsheetData[key].start);
+                const endDec = timeToDecimal(spreadsheetData[key].end);
+                
+                let diff = endDec - startDec;
+                // Si es negativo (ej 23:00 a 06:00), sumamos 24h
+                if (diff < 0) diff += 24;
+                
+                spreadsheetData[key].worked = decimalToTime(diff, true);
                 if(!spreadsheetData[key].due) spreadsheetData[key].due = "7.6";
             } else {
                 spreadsheetData[key].worked = "";
             }
-            saveStorage(); recalculateTotals(); renderTable();
+            saveStorage(); recalculateTotals(); 
+            // NO llamamos a renderTable() aquí para evitar perder foco si estamos tabulando
+            re-renderRowCalc(key); 
+        }
+
+        // Optimización: Solo recalcula totales visuales sin redibujar toda la tabla
+        function re-renderRowCalc(key) {
+           recalculateTotals();
+           // Si quisieras actualizar solo la celda de resultado "Real" y "Dif" al vuelo, sería aquí.
+           // Por simplicidad, y como renderTable es rápido, podemos llamar a renderTable si es necesario,
+           // pero para evitar saltos de teclado, mejor dejamos que el usuario termine.
+           // En este caso, como usamos onblur, es seguro llamar a renderTable.
+           renderTable(); 
         }
 
         function recalculateTotals() {
-            let mDiffReal = 0; // Acumulador 1x
-            let mDiffWeighted = 0; // Acumulador 1.5x
-            let mDays = 0;
-            let totalYearWeighted = 0;
+            let mDiffReal = 0, mDiffWeighted = 0, mDays = 0, totalYearWeighted = 0;
             
             Object.keys(spreadsheetData).forEach(k => {
                 if(k === 'initialBalance') return;
@@ -245,21 +338,15 @@
                 if(d.worked && d.due) {
                     const rawDiff = timeToDecimal(d.worked) - timeToDecimal(d.due);
                     const weightedDiff = rawDiff * 1.5;
-                    
                     totalYearWeighted += weightedDiff;
                     
                     if(k.includes(`-${monthNames.indexOf(currentMonth)+1}-`)) {
-                        mDays++; 
-                        mDiffReal += rawDiff;
-                        mDiffWeighted += weightedDiff; 
+                        mDays++; mDiffReal += rawDiff; mDiffWeighted += weightedDiff; 
                     }
                 }
             });
 
-            // Actualizar UI
             document.getElementById('total-days-worked').textContent = mDays;
-            
-            // Mostrar ambos saldos
             document.getElementById('month-diff-real').textContent = (mDiffReal > 0 ? '+' : '') + decimalToTime(mDiffReal, true);
             document.getElementById('month-diff-multiplied').textContent = (mDiffWeighted > 0 ? '+' : '') + decimalToTime(mDiffWeighted, true);
             
@@ -275,12 +362,11 @@
             document.getElementById('initial-balance-input').value = spreadsheetData.initialBalance || '';
         }
 
+        // ... (Resto de funciones de botones igual que antes)
         document.getElementById('toggle-view-btn').onclick = () => {
             const isReg = !document.getElementById('view-register').classList.toggle('hidden-view');
             document.getElementById('view-summary').classList.toggle('hidden-view');
-            const btn = document.getElementById('toggle-view-btn');
-            btn.textContent = isReg ? "Resumen Anual" : "Volver";
-            btn.className = isReg ? "bg-blue-600 text-white font-bold text-[10px] px-4 py-2 rounded-full uppercase tap-effect shadow-md shadow-blue-200" : "bg-gray-800 text-white font-bold text-[10px] px-4 py-2 rounded-full uppercase tap-effect shadow-md";
+            document.getElementById('toggle-view-btn').textContent = isReg ? "Resumen" : "Volver";
             if(!isReg) renderSummary();
         };
 
@@ -303,7 +389,6 @@
             });
         }
 
-        // Backup y Carga
         document.getElementById('download-btn').onclick = () => {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(spreadsheetData));
             const a = document.createElement('a');
@@ -318,16 +403,14 @@
             if (!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
-                try {
-                    spreadsheetData = JSON.parse(e.target.result);
-                    saveStorage(); renderTable(); alert("Datos cargados correctamente");
-                } catch(err) { alert("Error al leer el archivo"); }
+                try { spreadsheetData = JSON.parse(e.target.result); saveStorage(); renderTable(); alert("Datos cargados"); } 
+                catch(err) { alert("Error archivo"); }
             };
             reader.readAsText(file);
         };
 
         document.getElementById('reset-button').onclick = () => {
-            if(confirm("¿Borrar datos de ESTE mes?")) {
+            if(confirm("¿Borrar mes actual?")) {
                const newObj = {};
                Object.keys(spreadsheetData).forEach(k => {
                    if(k === 'initialBalance' || !k.includes(`-${monthNames.indexOf(currentMonth)+1}-`)) newObj[k] = spreadsheetData[k];
