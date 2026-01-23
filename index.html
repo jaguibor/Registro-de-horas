@@ -9,7 +9,7 @@
     
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
-    <link rel="manifest" href="manifest.json?v=5">
+    <link rel="manifest" href="manifest.json?v=6">
     
     <title>Registro de Horas</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -34,7 +34,7 @@
 <body class="pb-20">
 
     <div id="modal-overlay" onclick="if(event.target==this) closeModal()">
-        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl scale-up">
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl">
             <h3 id="modal-date" class="text-lg font-bold mb-4 text-center"></h3>
             <textarea id="modal-text" class="w-full h-32 p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe una nota..."></textarea>
             <div class="flex gap-3 mt-5">
@@ -55,7 +55,7 @@
                 <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-sm font-bold">0</p></div>
                 <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Dif. Mes</p><p id="stat-real" class="text-sm font-bold">0:00</p></div>
                 <div class="ios-card p-2 text-center bg-indigo-50/50"><p class="text-[8px] font-bold text-indigo-600 uppercase">Nocturnas</p><p id="stat-noc" class="text-sm font-bold text-indigo-700">0:00</p></div>
-                <div class="ios-card p-2 text-center bg-green-50"><p class="text-[8px] font-bold text-green-700 uppercase">Extra (1.5)</p><p id="stat-extra" class="text-sm font-bold text-green-700">0:00</p></div>
+                <div class="ios-card p-2 text-center bg-green-50"><p class="text-[8px] font-bold text-green-700 uppercase">Extra + Noc</p><p id="stat-extra" class="text-sm font-bold text-green-700">0:00</p></div>
             </div>
             <div class="ios-card rounded-b-none border-b-0 shadow-none">
                 <table>
@@ -74,7 +74,7 @@
                 </table>
             </div>
             <div class="ios-card p-4 bg-[#1c1c1e] text-white flex justify-between items-center mb-6">
-                <p class="text-[10px] font-bold uppercase opacity-60">Saldo Anual Total</p>
+                <p class="text-[10px] font-bold uppercase opacity-60">Saldo Total Anual</p>
                 <span id="stat-total" class="text-xl font-bold font-mono">00:00</span>
             </div>
             <div class="flex flex-col gap-2 mb-10">
@@ -195,18 +195,22 @@
             document.getElementById('stat-days').innerText = d;
             document.getElementById('stat-real').innerText = (r >= 0 ? '+' : '') + dToC(r);
             document.getElementById('stat-noc').innerText = dToC(n);
-            document.getElementById('stat-extra').innerText = ( (r + n) >= 0 ? '+' : '') + dToC((r + n) * 1.5);
             
-            let total = 0;
+            // CÁLCULO CORREGIDO: (Dif * 1.5) + Nocturnas lineales
+            let extraConNoc = (r * 1.5) + n;
+            document.getElementById('stat-extra').innerText = (extraConNoc >= 0 ? '+' : '') + dToC(extraConNoc);
+            
+            let totalAnual = 0;
             Object.values(data).forEach(day => {
                 if(day.in && day.out) {
                     let w = tToD(day.out) - tToD(day.in); if(w < 0) w += 24;
                     let dif = w - tToD(day.obj || '07:36');
                     let nc = calcNightly(day.in, day.out);
-                    total += (dif + nc) * 1.5;
+                    // (Diferencia acumulada * 1.5) + Horas nocturnas lineales
+                    totalAnual += (dif * 1.5) + nc;
                 }
             });
-            document.getElementById('stat-total').innerText = dToC(total);
+            document.getElementById('stat-total').innerText = dToC(totalAnual);
         }
 
         function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(); }
