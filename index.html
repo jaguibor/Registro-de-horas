@@ -25,9 +25,7 @@
         .col-dia { width: 15%; } .col-data { width: 17%; }
         input { width: 100%; border: none; background: transparent; text-align: center; font-size: 15px; color: #1c1c1e; outline: none; padding: 10px 0; font-variant-numeric: tabular-nums; }
         .weekend { background-color: #f9f9fb; }
-        .holiday { color: #ff3b30 !important; }
         .today-row { background-color: #fff9c4 !important; }
-        .hidden { display: none !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -40,7 +38,6 @@
                     <h1 class="text-xl font-bold tracking-tight">Registro de Horas</h1>
                     <span id="year-display" class="text-sm font-semibold text-blue-600">2026</span>
                 </div>
-                <button id="btn-view" class="bg-gray-100 text-gray-800 text-[10px] px-4 py-2 rounded-full font-bold uppercase tracking-widest border border-gray-200">Resumen</button>
             </div>
 
             <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
@@ -69,11 +66,21 @@
             </div>
             
             <div class="ios-card p-5 bg-[#1c1c1e] text-white flex justify-between items-center mb-6">
-                <p class="text-[10px] font-bold uppercase opacity-50">Saldo Total</p>
+                <p class="text-[10px] font-bold uppercase opacity-50">Saldo Total Anual</p>
                 <span id="stat-total" class="text-2xl font-bold font-mono">00:00</span>
+            </div>
+
+            <div class="flex flex-col gap-2 mb-10">
+                <button onclick="exportToCSV()" class="w-full bg-white border border-gray-200 p-4 rounded-xl text-xs font-bold uppercase tracking-widest shadow-sm">Descargar Excel (CSV)</button>
+                <div class="flex gap-2">
+                    <button onclick="downloadJSON()" class="flex-1 bg-gray-100 p-4 rounded-xl text-[10px] font-bold uppercase tracking-widest text-gray-600">Guardar Backup</button>
+                    <button onclick="document.getElementById('file-input').click()" class="flex-1 bg-gray-100 p-4 rounded-xl text-[10px] font-bold uppercase tracking-widest text-gray-600">Cargar Backup</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <input type="file" id="file-input" class="hidden" accept=".json">
 
     <script>
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -96,6 +103,8 @@
         function renderTable() {
             const body = document.getElementById('table-body'); body.innerHTML = "";
             const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+            const today = new Date();
+            const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
             let mReal = 0, mExtra = 0, mDays = 0;
 
             for(let d = 1; d <= daysInMonth; d++) {
@@ -103,6 +112,7 @@
                 const key = `${currentYear}-${currentMonthIdx + 1}-${d}`;
                 const dayData = data[key] || { in: '', out: '', obj: '07:36' };
                 const isWE = date.getDay() === 0 || date.getDay() === 6;
+                const isToday = key === todayKey;
 
                 let worked = 0, diff = 0;
                 if(dayData.in && dayData.out) {
@@ -112,7 +122,9 @@
                 }
 
                 const row = document.createElement('tr');
-                if(isWE) row.className = "weekend";
+                if(isToday) row.className = "today-row";
+                else if(isWE) row.className = "weekend";
+
                 row.innerHTML = `
                     <td class="col-dia">
                         <div class="text-[9px] font-bold ${isWE ? 'text-red-400' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
@@ -160,6 +172,41 @@
                 </button>
             `).join('');
         }
+
+        // FUNCIONES DE EXPORTACIÓN Y BACKUP
+        function exportToCSV() {
+            let csv = "\uFEFFFecha;Entrada;Salida;Real;Objetivo;Diferencia\n";
+            Object.keys(data).sort().forEach(k => {
+                const d = data[k]; if(d.in && d.out) {
+                    let w = timeToDec(d.out) - timeToDec(d.in); if(w < 0) w += 24;
+                    let df = w - timeToDec(d.obj);
+                    csv += `${k};${d.in};${d.out};${decToClock(w)};${d.obj};${decToClock(df)}\n`;
+                }
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `registro_horas_2026.csv`;
+            link.click();
+        }
+
+        function downloadJSON() {
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = "backup_horas.json";
+            a.click();
+        }
+
+        document.getElementById('file-input').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                data = JSON.parse(ev.target.result);
+                localStorage.setItem('horas_v12', JSON.stringify(data));
+                renderTable();
+            };
+            reader.readAsText(e.target.files[0]);
+        };
 
         window.onload = () => { renderTabs(); renderTable(); };
     </script>
