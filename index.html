@@ -8,7 +8,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Horas 26">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972531.png">
-    
     <link rel="manifest" href="manifest.json">
     
     <title>Registro 2026</title>
@@ -17,16 +16,22 @@
         :root { --ios-bg: #F2F2F7; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--ios-bg); -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
         .ios-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        /* inputmode=decimal activa teclado numérico, pero permitimos texto para el formato */
+        
         input[type="text"] { -webkit-appearance: none; background: transparent; text-align: center; font-size: 15px; width: 100%; padding: 8px 0; border: none; font-variant-numeric: tabular-nums; }
-        /* Estilos de tabla y UI */
+        
         .glass-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 0.5px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50; }
-        .col-dia { width: 45px; } .col-hora { width: 55px; } .col-real { width: 50px; } .col-obj { width: 45px; } .col-dif { width: 55px; }
+        
+        /* AJUSTES DE ANCHURA DE COLUMNAS */
+        .col-dia { width: 55px; } /* Más ancha para LUN, MAR... */
+        .col-hora { width: 52px; } 
+        .col-real { width: 48px; } 
+        .col-obj { width: 42px; } /* Ajustada para que no se vea descentrada */
+        .col-dif { width: 55px; }
+        
         .weekend-row { background-color: #F9F9F9; }
         .hidden-view { display: none !important; }
         .tap-effect:active { opacity: 0.6; transform: scale(0.97); transition: transform 0.1s; }
         
-        /* Ajuste para el notch del iPhone */
         header { padding-top: env(safe-area-inset-top); }
         footer { padding-bottom: env(safe-area-inset-bottom); }
     </style>
@@ -46,6 +51,22 @@
                 <div id="month-tabs" class="flex overflow-x-auto px-5 gap-2 no-scrollbar" style="-webkit-overflow-scrolling: touch;"></div>
             </div>
             <div class="px-3">
+                
+                <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+                    <div class="ios-card p-2 shadow-sm flex flex-col justify-center">
+                        <span class="block text-[9px] text-gray-400 font-bold uppercase">Días</span>
+                        <span id="total-days-worked" class="text-xl font-bold text-gray-800">0</span>
+                    </div>
+                    <div class="ios-card p-2 shadow-sm border border-gray-100 flex flex-col justify-center">
+                        <span class="block text-[9px] text-gray-400 font-bold uppercase">Dif (1x)</span>
+                        <span id="month-diff-real" class="text-xl font-bold text-gray-600">0h</span>
+                    </div>
+                    <div class="ios-card p-2 bg-green-50/50 border border-green-100 shadow-sm flex flex-col justify-center">
+                        <span class="block text-[9px] text-green-700 font-bold uppercase">Extra (1.5x)</span>
+                        <span id="month-diff-multiplied" class="text-xl font-bold text-green-600">0h</span>
+                    </div>
+                </div>
+
                 <div class="ios-card border border-gray-200/60 mb-4">
                     <table class="w-full text-left border-collapse table-fixed">
                         <thead class="glass-header text-[9px] uppercase text-gray-500 font-bold">
@@ -61,25 +82,14 @@
                         <tbody id="spreadsheet-body" class="text-[14px]"></tbody>
                     </table>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-3 mb-4 text-center">
-                    <div class="ios-card p-3 shadow-sm">
-                        <span class="block text-[10px] text-gray-400 font-bold uppercase">Días Trabajados</span>
-                        <span id="total-days-worked" class="text-2xl font-bold text-gray-800">0</span>
-                    </div>
-                    <div class="ios-card p-3 bg-green-50/50 border border-green-100 shadow-sm">
-                        <span class="block text-[10px] text-green-700 font-bold uppercase">Saldo Extra (x1.5)</span>
-                        <span id="month-diff-multiplied" class="text-2xl font-bold text-green-600">0h 0m</span>
-                    </div>
-                </div>
 
                 <div class="ios-card divide-y divide-gray-100 border border-gray-200/60 shadow-sm">
                     <div class="flex justify-between items-center p-3 text-xs text-gray-500 font-medium">
-                        <span>Saldo Inicial Año (Horas)</span>
+                        <span>Saldo Inicial Año</span>
                         <input type="text" inputmode="decimal" id="initial-balance-input" class="w-20 text-right font-bold text-blue-600 bg-gray-50 rounded px-2" placeholder="0">
                     </div>
                     <div class="flex justify-between items-center p-4 bg-gray-900 text-white font-bold uppercase tracking-wider">
-                        <span>Saldo Total Año</span>
+                        <span>Saldo Total (c/Extras)</span>
                         <span id="grand-total" class="text-lg">0h 0m</span>
                     </div>
                 </div>
@@ -90,7 +100,7 @@
             <div class="ios-card border border-gray-200/60 shadow-sm">
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-200">
-                        <tr><th class="py-3 px-4">Mes</th><th class="py-3 text-center">Días</th><th class="py-3 text-right px-4">Saldo (x1.5)</th></tr>
+                        <tr><th class="py-3 px-4">Mes</th><th class="py-3 text-center">Días</th><th class="py-3 text-right px-4">Extra (1.5x)</th></tr>
                     </thead>
                     <tbody id="summary-table-body" class="text-sm divide-y divide-gray-100"></tbody>
                 </table>
@@ -99,33 +109,31 @@
 
         <footer class="mt-8 mb-8 px-4 flex flex-col gap-3 justify-center items-center">
             <div class="flex gap-4">
-                <button id="download-btn" class="text-white bg-gray-800 px-4 py-2 rounded-lg text-[11px] font-bold uppercase shadow tap-effect">Descargar Backup</button>
-                <button id="backup-btn" class="text-blue-600 bg-blue-50 px-4 py-2 rounded-lg text-[11px] font-bold uppercase tap-effect">Copiar Texto</button>
+                <button id="download-btn" class="text-white bg-gray-800 px-4 py-2 rounded-lg text-[11px] font-bold uppercase shadow tap-effect">Guardar Backup</button>
+                <button id="import-btn" class="text-blue-600 bg-blue-50 px-4 py-2 rounded-lg text-[11px] font-bold uppercase tap-effect">Cargar Backup</button>
             </div>
+            <input type="file" id="file-input" class="hidden" accept=".json">
             <button id="reset-button" class="text-red-400 text-[10px] font-bold uppercase mt-2 tap-effect p-2">Reiniciar Datos Mes</button>
-            <p class="text-[9px] text-gray-400 text-center max-w-xs leading-tight">Los datos se guardan solo en este dispositivo. Haz copias de seguridad regularmente.</p>
         </footer>
     </div>
 
     <script>
-        // CONFIGURACIÓN Y LOGICA
         const currentYear = 2026;
         const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-        const dayLetters = ["D", "L", "M", "X", "J", "V", "S"];
+        // CAMBIO 1: Días con 3 letras
+        const dayShortNames = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+        
         let currentMonth = monthNames[new Date().getMonth()];
         let spreadsheetData = {};
 
-        // SERVICE WORKER REGISTRATION
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(() => console.log('Service Worker OK'));
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
             });
         }
 
-        // UTILIDADES DE TIEMPO
         function timeToDecimal(str) {
             if (!str) return 0;
-            // Soporta coma y punto, y formato decimal (8.5) o reloj (8:30)
             const cleanStr = str.trim().replace(',', '.');
             if(cleanStr.includes(':')) {
                 const parts = cleanStr.split(':');
@@ -135,16 +143,14 @@
         }
 
         function decimalToTime(decimal, short = false) {
-            const sign = decimal < -0.01 ? '-' : ''; // Tolerancia pequeña
+            const sign = decimal < -0.01 ? '-' : '';
             const abs = Math.abs(decimal);
             const hrs = Math.floor(abs);
             const mins = Math.round((abs - hrs) * 60);
-            // Ajuste si los minutos redondean a 60
             if(mins === 60) return short ? `${sign}${hrs+1}:00` : `${sign}${hrs+1}h 00m`;
             return short ? `${sign}${hrs}:${String(mins).padStart(2, '0')}` : `${sign}${hrs}h ${mins}m`;
         }
 
-        // RENDERIZADO
         function renderTabs() {
             const container = document.getElementById('month-tabs');
             container.innerHTML = '';
@@ -156,7 +162,6 @@
                 btn.onclick = () => { currentMonth = month; renderTabs(); renderTable(); };
                 container.appendChild(btn);
             });
-            // Auto-scroll al mes activo
             setTimeout(() => {
                 const activeBtn = container.querySelector('.bg-black');
                 if(activeBtn) activeBtn.scrollIntoView({behavior: 'smooth', inline: 'center', block: 'nearest'});
@@ -177,39 +182,32 @@
                 
                 tr.className = `border-b border-gray-100 h-11 ${isWeekend ? 'weekend-row' : ''}`;
                 
-                // Columna FECHA
-                tr.innerHTML = `<td class="text-center"><div class="flex flex-col leading-none"><span class="text-[9px] font-bold ${isWeekend ? 'text-red-400' : 'text-gray-400'}">${dayLetters[dayOfWeek]}</span><span class="text-[12px] font-bold text-gray-700">${date.getDate()}</span></div></td>`;
+                // CAMBIO VISUAL DÍAS (LUN 1)
+                tr.innerHTML = `<td class="text-center"><div class="flex flex-col leading-none items-center justify-center"><span class="text-[9px] font-bold ${isWeekend ? 'text-red-400' : 'text-gray-400'} uppercase tracking-tighter">${dayShortNames[dayOfWeek]}</span><span class="text-[13px] font-bold text-gray-700">${date.getDate()}</span></div></td>`;
                 
-                // Inputs de Hora (ENT y SAL)
                 ['start', 'end'].forEach(f => {
                     const td = document.createElement('td');
                     const inp = document.createElement('input');
-                    inp.type="text"; 
-                    inp.inputMode="decimal"; // CLAVE: Teclado numérico en móvil
-                    inp.placeholder = "--:--";
+                    inp.type="text"; inp.inputMode="decimal"; inp.placeholder = "--:--";
                     inp.value = data[f] || '';
                     inp.className = "text-gray-800 font-medium placeholder-gray-300 focus:bg-blue-50 focus:text-blue-600 rounded transition-colors";
-                    
-                    inp.onchange = (e) => { // Usamos onchange para evitar cálculos excesivos al teclear
-                        updateData(key, f, e.target.value);
-                    };
+                    inp.onchange = (e) => { updateData(key, f, e.target.value); };
                     td.appendChild(inp); tr.appendChild(td);
                 });
 
-                // Columna REAL (Calculada)
                 tr.innerHTML += `<td class="bg-blue-50/40 font-bold text-center text-blue-700 text-[13px]">${data.worked || '—'}</td>`;
                 
-                // Input OBJETIVO
+                // CAMBIO OBJ: Alineación centrada estricta
                 const tdDue = document.createElement('td');
+                tdDue.className = "text-center"; // Centrado forzado
                 const inpDue = document.createElement('input');
                 inpDue.type="text"; inpDue.inputMode="decimal";
                 inpDue.value = data.due || '';
                 inpDue.placeholder = "7.6";
-                inpDue.className = "text-gray-400 text-[12px]";
+                inpDue.className = "text-gray-400 text-[12px] text-center"; // Input centrado
                 inpDue.onchange = (e) => { updateData(key, 'due', e.target.value); };
                 tdDue.appendChild(inpDue); tr.appendChild(tdDue);
 
-                // Columna DIFERENCIA
                 const diffVal = timeToDecimal(data.worked) - timeToDecimal(data.due);
                 const colorClass = diffVal >= 0 ? 'text-green-600' : 'text-red-500';
                 const signDisplay = diffVal > 0 ? '+' : '';
@@ -224,145 +222,121 @@
         function updateData(key, field, value) {
             if (!spreadsheetData[key]) spreadsheetData[key] = {};
             spreadsheetData[key][field] = value;
-            
-            // Auto-cálculo de horas trabajadas
             if(spreadsheetData[key].start && spreadsheetData[key].end){
                 const diff = timeToDecimal(spreadsheetData[key].end) - timeToDecimal(spreadsheetData[key].start);
-                // Si sale negativo (ej. turno de noche que cruza medianoche), sumar 24h
                 const finalDiff = diff < 0 ? diff + 24 : diff;
                 spreadsheetData[key].worked = decimalToTime(finalDiff, true);
-                
-                // Poner objetivo por defecto si no existe
                 if(!spreadsheetData[key].due) spreadsheetData[key].due = "7.6";
             } else {
                 spreadsheetData[key].worked = "";
             }
-            
-            saveStorage(); 
-            recalculateTotals(); 
-            renderTable(); // Re-renderizar para actualizar colores y cálculos
+            saveStorage(); recalculateTotals(); renderTable();
         }
 
         function recalculateTotals() {
-            let mDiff = 0, mDays = 0, totalYearDiff = 0;
+            let mDiffReal = 0; // Acumulador 1x
+            let mDiffWeighted = 0; // Acumulador 1.5x
+            let mDays = 0;
+            let totalYearWeighted = 0;
             
-            // Iterar todo el año
             Object.keys(spreadsheetData).forEach(k => {
                 if(k === 'initialBalance') return;
                 const d = spreadsheetData[k];
                 if(d.worked && d.due) {
-                    const diff = (timeToDecimal(d.worked) - timeToDecimal(d.due)) * 1.5; // Multiplicador 1.5 aplicado
-                    totalYearDiff += diff;
+                    const rawDiff = timeToDecimal(d.worked) - timeToDecimal(d.due);
+                    const weightedDiff = rawDiff * 1.5;
                     
-                    // Si pertenece al mes actual
+                    totalYearWeighted += weightedDiff;
+                    
                     if(k.includes(`-${monthNames.indexOf(currentMonth)+1}-`)) {
                         mDays++; 
-                        mDiff += diff; 
+                        mDiffReal += rawDiff;
+                        mDiffWeighted += weightedDiff; 
                     }
                 }
             });
 
             // Actualizar UI
             document.getElementById('total-days-worked').textContent = mDays;
-            document.getElementById('month-diff-multiplied').textContent = (mDiff > 0 ? '+' : '') + decimalToTime(mDiff);
+            
+            // Mostrar ambos saldos
+            document.getElementById('month-diff-real').textContent = (mDiffReal > 0 ? '+' : '') + decimalToTime(mDiffReal, true);
+            document.getElementById('month-diff-multiplied').textContent = (mDiffWeighted > 0 ? '+' : '') + decimalToTime(mDiffWeighted, true);
             
             const init = timeToDecimal(spreadsheetData.initialBalance);
-            const grandTotal = init + totalYearDiff;
+            const grandTotal = init + totalYearWeighted;
             document.getElementById('grand-total').textContent = (grandTotal > 0 ? '+' : '') + decimalToTime(grandTotal);
         }
 
-        // PERSISTENCIA DE DATOS
         function saveStorage() { localStorage.setItem('timeTracker_2026_v2', JSON.stringify(spreadsheetData)); }
-        
         function loadStorage() { 
             const saved = localStorage.getItem('timeTracker_2026_v2');
             if(saved) spreadsheetData = JSON.parse(saved);
             document.getElementById('initial-balance-input').value = spreadsheetData.initialBalance || '';
         }
 
-        // BOTONES Y EVENTOS
         document.getElementById('toggle-view-btn').onclick = () => {
             const isReg = !document.getElementById('view-register').classList.toggle('hidden-view');
             document.getElementById('view-summary').classList.toggle('hidden-view');
             const btn = document.getElementById('toggle-view-btn');
-            btn.textContent = isReg ? "Resumen Anual" : "Volver al Registro";
+            btn.textContent = isReg ? "Resumen Anual" : "Volver";
             btn.className = isReg ? "bg-blue-600 text-white font-bold text-[10px] px-4 py-2 rounded-full uppercase tap-effect shadow-md shadow-blue-200" : "bg-gray-800 text-white font-bold text-[10px] px-4 py-2 rounded-full uppercase tap-effect shadow-md";
-
             if(!isReg) renderSummary();
         };
 
         function renderSummary() {
             const sBody = document.getElementById('summary-table-body');
             sBody.innerHTML = '';
-            let annualSum = 0;
-            
             monthNames.forEach((m, i) => {
                 let md = 0, mdiff = 0;
                 Object.keys(spreadsheetData).forEach(k => {
-                    // Chequeo robusto del mes en la key "YYYY-M-D"
                     const parts = k.split('-');
                     if(parts.length === 3 && parseInt(parts[1]) === i+1) {
                          const d = spreadsheetData[k];
-                         if(d.worked && d.due) {
-                            md++; 
-                            mdiff += (timeToDecimal(d.worked) - timeToDecimal(d.due)) * 1.5;
-                         }
+                         if(d.worked && d.due) { md++; mdiff += (timeToDecimal(d.worked) - timeToDecimal(d.due)) * 1.5; }
                     }
                 });
-                annualSum += mdiff;
                 if (md > 0 || m === currentMonth) {
                     const color = mdiff >= 0 ? 'text-green-600' : 'text-red-500';
-                    sBody.innerHTML += `<tr>
-                        <td class="p-4 font-bold text-gray-700">${m}</td>
-                        <td class="text-center text-gray-500">${md}</td>
-                        <td class="text-right p-4 font-mono font-bold ${color}">${mdiff === 0 ? '-' : (mdiff > 0 ? '+' : '') + decimalToTime(mdiff, true)}</td>
-                    </tr>`;
+                    sBody.innerHTML += `<tr><td class="p-4 font-bold text-gray-700">${m}</td><td class="text-center text-gray-500">${md}</td><td class="text-right p-4 font-mono font-bold ${color}">${mdiff === 0 ? '-' : (mdiff > 0 ? '+' : '') + decimalToTime(mdiff, true)}</td></tr>`;
                 }
             });
         }
 
-        // Descargar Backup como archivo
+        // Backup y Carga
         document.getElementById('download-btn').onclick = () => {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(spreadsheetData));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "backup_horas_" + new Date().toISOString().slice(0,10) + ".json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+            const a = document.createElement('a');
+            a.href = dataStr; a.download = "backup_horas_" + new Date().toISOString().slice(0,10) + ".json";
+            document.body.appendChild(a); a.click(); a.remove();
         };
 
-        document.getElementById('backup-btn').onclick = () => {
-            navigator.clipboard.writeText(JSON.stringify(spreadsheetData));
-            alert("Backup copiado al portapapeles. Pégalo en Notas.");
+        const fileInput = document.getElementById('file-input');
+        document.getElementById('import-btn').onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    spreadsheetData = JSON.parse(e.target.result);
+                    saveStorage(); renderTable(); alert("Datos cargados correctamente");
+                } catch(err) { alert("Error al leer el archivo"); }
+            };
+            reader.readAsText(file);
         };
-        
+
         document.getElementById('reset-button').onclick = () => {
-            if(confirm("¿Seguro que quieres borrar los datos de ESTE mes?")) {
-               // Filtrar keys que no sean de este mes
+            if(confirm("¿Borrar datos de ESTE mes?")) {
                const newObj = {};
                Object.keys(spreadsheetData).forEach(k => {
-                   if(k === 'initialBalance' || !k.includes(`-${monthNames.indexOf(currentMonth)+1}-`)) {
-                       newObj[k] = spreadsheetData[k];
-                   }
+                   if(k === 'initialBalance' || !k.includes(`-${monthNames.indexOf(currentMonth)+1}-`)) newObj[k] = spreadsheetData[k];
                });
-               spreadsheetData = newObj;
-               saveStorage();
-               renderTable();
+               spreadsheetData = newObj; saveStorage(); renderTable();
             }
         };
 
-        // INICIALIZACIÓN
-        window.onload = () => {
-            loadStorage();
-            document.getElementById('initial-balance-input').onchange = (e) => { 
-                spreadsheetData.initialBalance = e.target.value; 
-                saveStorage(); 
-                recalculateTotals(); 
-            };
-            renderTabs(); 
-            renderTable();
-        };
+        window.onload = () => { loadStorage(); renderTabs(); renderTable(); };
     </script>
 </body>
 </html>
