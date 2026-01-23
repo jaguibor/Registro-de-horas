@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Registro de Horas">
     
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2838/2838779.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2784/2784459.png">
     <link rel="manifest" href="manifest.json">
     
     <title>Registro de Horas</title>
@@ -19,72 +21,70 @@
             position: sticky; 
             top: 0; 
             z-index: 100; 
-            background-color: rgba(242, 242, 247, 0.8); 
+            background-color: rgba(242, 242, 247, 0.85); 
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             padding-top: env(safe-area-inset-top); 
+            border-bottom: 0.5px solid #d1d1d6;
         }
 
         .ios-card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
         
         table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-        th { background: #fbfbfd; color: #8e8e93; font-size: 10px; text-transform: uppercase; padding: 14px 0; border-bottom: 0.5px solid #d1d1d6; text-align: center; font-weight: 600; }
+        th { background: #fbfbfd; color: #8e8e93; font-size: 10px; text-transform: uppercase; padding: 14px 0; text-align: center; font-weight: 600; }
         td { height: 55px; border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; position: relative; }
         
         .col-dia { width: 15%; } .col-data { width: 17%; }
         
         input { width: 100%; border: none; background: transparent; text-align: center; font-size: 15px; color: #1c1c1e; outline: none; padding: 10px 0; font-variant-numeric: tabular-nums; }
-        input::placeholder { color: #c7c7cc; }
         
         .weekend { background-color: #f9f9fb; }
         .holiday { color: #ff3b30 !important; }
         .today-row { background-color: #fff9c4 !important; }
-        
-        /* Indicador de nota más discreto */
         .has-note::after { content: ''; position: absolute; top: 4px; right: 4px; width: 4px; height: 4px; background: #007aff; border-radius: 50%; }
         
         .hidden { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
     </style>
 </head>
 <body class="pb-20">
 
     <div id="modal-overlay" class="hidden">
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl transform transition-all">
-            <h3 id="modal-title" class="text-lg font-semibold mb-1">Detalles del día</h3>
-            <p id="modal-holiday-desc" class="text-xs text-red-500 mb-4 font-medium uppercase tracking-tight"></p>
-            <textarea id="modal-textarea" class="w-full h-32 p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Escribir actividad o comentarios..."></textarea>
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+            <h3 id="modal-title" class="text-lg font-semibold mb-1">Detalles</h3>
+            <p id="modal-holiday-desc" class="text-xs text-red-500 mb-4 font-medium uppercase"></p>
+            <textarea id="modal-textarea" class="w-full h-32 p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Anotaciones del día..."></textarea>
             <div class="flex gap-3 mt-5">
-                <button onclick="closeModal()" class="flex-1 p-3 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-xl">Cerrar</button>
-                <button onclick="saveNote()" class="flex-1 p-3 text-sm font-semibold bg-black text-white rounded-xl shadow-md active:scale-95 transition-transform">Guardar</button>
+                <button onclick="closeModal()" class="flex-1 p-3 text-sm font-medium text-gray-500">Cerrar</button>
+                <button onclick="saveNote()" class="flex-1 p-3 text-sm font-semibold bg-black text-white rounded-xl shadow-md">Guardar</button>
             </div>
         </div>
     </div>
 
     <div class="max-w-md mx-auto">
-        <div class="header-sticky px-3 pb-2 border-b border-gray-200">
+        <div class="header-sticky px-3">
             <div class="flex justify-between items-end pt-5 pb-3">
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight">Registro de Horas</h1>
-                    <select id="year-select" onchange="changeYear(this.value)" class="bg-transparent text-sm font-semibold text-blue-600 appearance-none outline-none cursor-pointer">
-                        <option value="2026" selected>Año 2026</option>
-                        <option value="2027">Año 2027</option>
-                        <option value="2028">Año 2028</option>
-                        <option value="2029">Año 2029</option>
-                        <option value="2030">Año 2030</option>
+                    <h1 class="text-xl font-bold tracking-tight">Registro de Horas</h1>
+                    <select id="year-select" onchange="changeYear(this.value)" class="bg-transparent text-sm font-semibold text-blue-600 appearance-none outline-none">
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
+                        <option value="2028">2028</option>
+                        <option value="2029">2029</option>
+                        <option value="2030">2030</option>
                     </select>
                 </div>
-                <button id="btn-view" class="bg-gray-100 text-gray-800 text-[10px] px-5 py-2 rounded-full font-bold uppercase tracking-widest border border-gray-200">Resumen</button>
+                <button id="btn-view" class="bg-gray-100 text-gray-800 text-[10px] px-4 py-2 rounded-full font-bold uppercase tracking-widest border border-gray-200">Resumen</button>
             </div>
 
             <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
 
             <div id="quick-stats" class="grid grid-cols-3 gap-2 py-2">
-                <div class="ios-card p-2 text-center border border-gray-100"><p class="text-[9px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-lg font-bold">0</p></div>
-                <div class="ios-card p-2 text-center border border-gray-100"><p class="text-[9px] font-bold text-gray-400 uppercase">Horas Reales</p><p id="stat-real" class="text-lg font-bold">0:00</p></div>
-                <div class="ios-card p-2 text-center border border-green-100 bg-green-50/30"><p class="text-[9px] font-bold text-green-700 uppercase">Extra (1.5x)</p><p id="stat-extra" class="text-lg font-bold text-green-700">0:00</p></div>
+                <div class="ios-card p-2 text-center"><p class="text-[9px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-lg font-bold">0</p></div>
+                <div class="ios-card p-2 text-center"><p class="text-[9px] font-bold text-gray-400 uppercase">Reales</p><p id="stat-real" class="text-lg font-bold">0:00</p></div>
+                <div class="ios-card p-2 text-center bg-green-50/30"><p class="text-[9px] font-bold text-green-700 uppercase">Extra (1.5)</p><p id="stat-extra" class="text-lg font-bold text-green-700">0:00</p></div>
             </div>
 
             <div class="ios-card rounded-b-none border-b-0 shadow-none">
@@ -106,17 +106,17 @@
 
             <div class="ios-card p-5 bg-[#1c1c1e] text-white flex justify-between items-center mb-6">
                 <div>
-                    <p id="label-anual" class="text-[10px] font-bold uppercase opacity-50 tracking-widest">Saldo Anual 2026</p>
-                    <p class="text-[9px] opacity-40">Basado en coeficiente 1.5x</p>
+                    <p id="label-anual" class="text-[10px] font-bold uppercase opacity-50 tracking-widest">Saldo Anual</p>
+                    <p class="text-[9px] opacity-40">Coeficiente aplicado 1.5x</p>
                 </div>
                 <span id="stat-total" class="text-2xl font-bold font-mono">00:00</span>
             </div>
 
             <div class="flex flex-col gap-3 mb-12">
                 <div class="flex gap-2">
-                    <button onclick="exportToCSV()" class="flex-1 bg-white border border-gray-200 p-3 rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-sm active:bg-gray-50 transition-colors">Exportar CSV (Excel)</button>
-                    <button onclick="document.getElementById('file-input').click()" class="flex-1 bg-white border border-gray-200 p-3 rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-sm active:bg-gray-50 transition-colors">Cargar Backup</button>
-                    <button onclick="downloadJSON()" class="px-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+                    <button onclick="exportToCSV()" class="flex-1 bg-white border border-gray-200 p-3 rounded-xl text-[10px] font-bold uppercase tracking-wider">Exportar CSV</button>
+                    <button onclick="document.getElementById('file-input').click()" class="flex-1 bg-white border border-gray-200 p-3 rounded-xl text-[10px] font-bold uppercase tracking-wider">Cargar Backup</button>
+                    <button onclick="downloadJSON()" class="px-4 bg-white border border-gray-200 rounded-xl">
                         <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     </button>
                 </div>
@@ -124,11 +124,7 @@
         </div>
 
         <div id="view-summary" class="px-3 hidden pt-4">
-            <div class="ios-card shadow-sm border border-gray-100">
-                <table class="text-sm">
-                    <tbody id="summary-body"></tbody>
-                </table>
-            </div>
+            <div class="ios-card border border-gray-100"><table class="text-sm"><tbody id="summary-body"></tbody></table></div>
         </div>
     </div>
 
@@ -137,11 +133,7 @@
     <script>
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
-        
-        const holidays = {
-            "1-1": "Año Nuevo", "1-6": "Epifanía", "5-1": "Trabajo", "8-15": "Asunción", 
-            "10-12": "Hispanidad", "11-1": "Todos los Santos", "12-6": "Constitución", "12-8": "Inmaculada", "12-25": "Navidad"
-        };
+        const holidays = {"1-1": "Año Nuevo", "1-6": "Epifanía", "5-1": "Trabajo", "8-15": "Asunción", "10-12": "Hispanidad", "11-1": "Todos los Santos", "12-6": "Constitución", "12-8": "Inmaculada", "12-25": "Navidad"};
 
         let currentYear = 2026;
         let currentMonthIdx = new Date().getMonth();
@@ -152,33 +144,17 @@
             if(!val) return "";
             let str = val.toString().replace(',', '.');
             if(!str.includes(':') && !isNaN(str) && parseFloat(str) < 24) {
-                let d = parseFloat(str);
-                let h = Math.floor(d);
-                let m = Math.round((d - h) * 60);
+                let d = parseFloat(str); let h = Math.floor(d); let m = Math.round((d - h) * 60);
                 return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
             }
             let clean = str.replace(/[.]/g, ':');
-            if(!clean.includes(':')) {
-                if(clean.length <= 2) clean += ":00";
-                else clean = clean.slice(0,-2) + ":" + clean.slice(-2);
-            }
+            if(!clean.includes(':')) { if(clean.length <= 2) clean += ":00"; else clean = clean.slice(0,-2) + ":" + clean.slice(-2); }
             let [h, m] = clean.split(':');
             return `${h.padStart(2, '0')}:${(m || '00').padEnd(2, '0').slice(0,2)}`;
         }
 
-        function timeToDec(t) {
-            if(!t || !t.includes(':')) return 0;
-            const [h, m] = t.split(':').map(Number);
-            return h + (m/60);
-        }
-
-        function decToClock(n) {
-            const sign = n < -0.001 ? '-' : '';
-            const abs = Math.abs(n);
-            const h = Math.floor(abs);
-            const m = Math.round((abs - h) * 60);
-            return `${sign}${h}:${m.toString().padStart(2, '0')}`;
-        }
+        function timeToDec(t) { if(!t || !t.includes(':')) return 0; const [h, m] = t.split(':').map(Number); return h + (m/60); }
+        function decToClock(n) { const sign = n < -0.001 ? '-' : ''; const abs = Math.abs(n); const h = Math.floor(abs); const m = Math.round((abs - h) * 60); return `${sign}${h}:${m.toString().padStart(2, '0')}`; }
 
         function renderTable() {
             const body = document.getElementById('table-body');
@@ -186,22 +162,19 @@
             const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
             const today = new Date();
             const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-            
             let mReal = 0, mExtra = 0, mDays = 0;
 
             for(let d = 1; d <= daysInMonth; d++) {
                 const date = new Date(currentYear, currentMonthIdx, d);
                 const key = `${currentYear}-${currentMonthIdx + 1}-${d}`;
-                const hKey = `${currentMonthIdx + 1}-${d}`;
                 const dayData = data[key] || { in: '', out: '', obj: '07:36', note: '' };
                 const isWE = date.getDay() === 0 || date.getDay() === 6;
-                const hName = holidays[hKey];
+                const hName = holidays[`${currentMonthIdx + 1}-${d}`];
                 const isToday = key === todayKey;
 
                 let worked = 0, diff = 0;
                 if(dayData.in && dayData.out) {
-                    worked = timeToDec(dayData.out) - timeToDec(dayData.in);
-                    if(worked < 0) worked += 24;
+                    worked = timeToDec(dayData.out) - timeToDec(dayData.in); if(worked < 0) worked += 24;
                     diff = worked - timeToDec(dayData.obj || '07:36');
                     mDays++; mReal += diff; mExtra += (diff * 1.5);
                 }
@@ -214,7 +187,7 @@
                 row.innerHTML = `
                     <td class="col-dia ${dayData.note ? 'has-note' : ''}" onclick="openNote('${key}', '${hName || ''}')">
                         <div class="text-[9px] font-bold ${hName || isWE ? 'holiday' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
-                        <div class="text-sm font-bold ${hName ? 'holiday' : ''}">${d}</div>
+                        <div class="text-sm font-bold">${d}</div>
                     </td>
                     <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.in || ''}" onblur="update('${key}','in',this.value)" placeholder="--:--"></td>
                     <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.out || ''}" onblur="update('${key}','out',this.value)" placeholder="--:--"></td>
@@ -226,7 +199,7 @@
             }
             updateStats(mDays, mReal, mExtra);
             if(currentMonthIdx === today.getMonth() && currentYear == today.getFullYear()) {
-                setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+                setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
             }
         }
 
@@ -264,11 +237,7 @@
             document.getElementById('modal-textarea').value = data[key].note || "";
             document.getElementById('modal-overlay').classList.remove('hidden');
         }
-        function saveNote() {
-            data[activeKey].note = document.getElementById('modal-textarea').value;
-            localStorage.setItem('horas_multianual_v8', JSON.stringify(data));
-            closeModal(); renderTable();
-        }
+        function saveNote() { data[activeKey].note = document.getElementById('modal-textarea').value; localStorage.setItem('horas_multianual_v8', JSON.stringify(data)); closeModal(); renderTable(); }
         function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
 
         function exportToCSV() {
@@ -284,7 +253,7 @@
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `registro_horas_completo.csv`;
+            link.download = `registro_horas.csv`;
             link.click();
         }
 
@@ -295,13 +264,7 @@
 
         document.getElementById('file-input').onchange = (e) => {
             const reader = new FileReader();
-            reader.onload = (ev) => { 
-                try {
-                    data = JSON.parse(ev.target.result); 
-                    localStorage.setItem('horas_multianual_v8', JSON.stringify(data)); 
-                    renderTable();
-                } catch(err) { alert("Error al cargar el archivo."); }
-            };
+            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_multianual_v8', JSON.stringify(data)); renderTable(); };
             reader.readAsText(e.target.files[0]);
         };
 
@@ -309,15 +272,14 @@
         function renderTabs() {
             const container = document.getElementById('month-tabs');
             container.innerHTML = months.map((m, i) => `
-                <button onclick="changeMonth(${i})" class="flex-none px-5 py-2 rounded-full text-[11px] font-bold ${i === currentMonthIdx ? 'bg-[#1c1c1e] text-white shadow-sm' : 'bg-white text-gray-400 border border-gray-100'}">
+                <button onclick="changeMonth(${i})" class="flex-none px-5 py-2 rounded-full text-[11px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">
                     ${m.substring(0,3).toUpperCase()}
                 </button>
             `).join('');
         }
 
         document.getElementById('btn-view').onclick = function() {
-            const main = document.getElementById('view-main');
-            const summ = document.getElementById('view-summary');
+            const main = document.getElementById('view-main'), summ = document.getElementById('view-summary');
             const isMain = summ.classList.toggle('hidden');
             main.classList.toggle('hidden');
             this.innerText = isMain ? "Resumen" : "Volver";
@@ -338,7 +300,7 @@
                         }
                     }
                 });
-                return `<tr class="border-b border-gray-50"><td class="p-4 font-semibold">${m}</td><td class="text-center text-gray-500">${md}</td><td class="p-4 text-right font-bold ${me >= 0 ? 'text-green-600' : 'text-red-500'}">${decToClock(me)}</td></tr>`;
+                return `<tr class="border-b border-gray-50"><td class="p-4 font-semibold">${m}</td><td class="text-center text-gray-400">${md}</td><td class="p-4 text-right font-bold ${me >= 0 ? 'text-green-600' : 'text-red-500'}">${decToClock(me)}</td></tr>`;
             }).join('');
         }
 
