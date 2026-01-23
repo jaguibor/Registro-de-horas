@@ -8,40 +8,160 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Registro">
     
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2088/2088617.png">
-    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/109/109613.png">
+    <link rel="manifest" href="manifest.json?v=3">
     
     <title>Registro de Horas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
-        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--ios-bg); margin: 0; color: #1c1c1e; }
-        .header-sticky { position: sticky; top: 0; z-index: 100; background: rgba(242, 242, 247, 0.9); backdrop-filter: blur(20px); padding-top: env(safe-area-inset-top); border-bottom: 0.5px solid #d1d1d6; }
-        .ios-card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { font-size: 10px; color: #8e8e93; padding: 12px 0; text-transform: uppercase; }
-        td { height: 50px; text-align: center; border-bottom: 0.5px solid #e5e5ea; }
-        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 15px; outline: none; }
-        .hidden { display: none; }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--ios-bg); -webkit-font-smoothing: antialiased; margin: 0; color: #1c1c1e; }
+        .header-sticky { position: sticky; top: 0; z-index: 100; background: rgba(242, 242, 247, 0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding-top: env(safe-area-inset-top); border-bottom: 0.5px solid #d1d1d6; }
+        .ios-card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+        th { background: #fbfbfd; color: #8e8e93; font-size: 10px; text-transform: uppercase; padding: 14px 0; text-align: center; font-weight: 600; }
+        td { height: 55px; border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; position: relative; }
+        .col-dia { width: 15%; } .col-data { width: 17%; }
+        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 15px; color: #1c1c1e; outline: none; padding: 10px 0; font-variant-numeric: tabular-nums; }
+        .weekend { background-color: #f9f9fb; }
+        .holiday { color: #ff3b30 !important; }
+        .today-row { background-color: #fff9c4 !important; }
+        .hidden { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body>
+<body class="pb-20">
+
     <div class="max-w-md mx-auto">
-        <div class="header-sticky px-4 py-4">
-            <h1 class="text-2xl font-bold">Registro de Horas</h1>
-            <p class="text-sm text-gray-500">Gestión de jornada</p>
+        <div class="header-sticky px-3">
+            <div class="flex justify-between items-end pt-5 pb-3">
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Registro de Horas</h1>
+                    <span id="year-display" class="text-sm font-semibold text-blue-600">2026</span>
+                </div>
+                <button id="btn-view" class="bg-gray-100 text-gray-800 text-[10px] px-4 py-2 rounded-full font-bold uppercase tracking-widest border border-gray-200">Resumen</button>
+            </div>
+
+            <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
+
+            <div id="quick-stats" class="grid grid-cols-3 gap-2 py-2">
+                <div class="ios-card p-2 text-center"><p class="text-[9px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-lg font-bold">0</p></div>
+                <div class="ios-card p-2 text-center"><p class="text-[9px] font-bold text-gray-400 uppercase">Reales</p><p id="stat-real" class="text-lg font-bold">0:00</p></div>
+                <div class="ios-card p-2 text-center bg-green-50/30"><p class="text-[9px] font-bold text-green-700 uppercase">Extra (1.5)</p><p id="stat-extra" class="text-lg font-bold text-green-700">0:00</p></div>
+            </div>
+
+            <div class="ios-card rounded-b-none border-b-0 shadow-none">
+                <table>
+                    <thead>
+                        <tr><th class="col-dia">Día</th><th class="col-data">Ent.</th><th class="col-data">Sal.</th><th class="col-data text-blue-600">Real</th><th class="col-data">Obj.</th><th class="col-data">Dif.</th></tr>
+                    </thead>
+                </table>
+            </div>
         </div>
-        
-        <div class="p-4">
-            <div class="ios-card p-4">
-                <p class="text-center text-gray-400 text-xs">Cargando datos...</p>
+
+        <div id="view-main" class="px-3 pt-1">
+            <div class="ios-card rounded-t-none border-t-0 mb-4">
+                <table id="main-table">
+                    <colgroup><col class="col-dia"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data"><col class="col-data"></colgroup>
+                    <tbody id="table-body" class="text-sm"></tbody>
+                </table>
+            </div>
+            
+            <div class="ios-card p-5 bg-[#1c1c1e] text-white flex justify-between items-center mb-6">
+                <p class="text-[10px] font-bold uppercase opacity-50">Saldo Total</p>
+                <span id="stat-total" class="text-2xl font-bold font-mono">00:00</span>
             </div>
         </div>
     </div>
 
     <script>
-        // Aquí debe ir tu lógica de JavaScript que ya funcionaba (localStorage, renderTable, etc.)
-        // Asegúrate de NO incluir el string "2026" en las etiquetas <h1> o <title>
+        const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+        let currentYear = 2026;
+        let currentMonthIdx = new Date().getMonth();
+        let data = JSON.parse(localStorage.getItem('horas_v12')) || {};
+
+        function formatTime(val) {
+            if(!val) return "";
+            let clean = val.replace('.', ':');
+            if(!clean.includes(':')) { if(clean.length <= 2) clean += ":00"; else clean = clean.slice(0,-2) + ":" + clean.slice(-2); }
+            let [h, m] = clean.split(':');
+            return `${h.padStart(2, '0')}:${(m || '00').padEnd(2, '0').slice(0,2)}`;
+        }
+
+        function timeToDec(t) { if(!t || !t.includes(':')) return 0; const [h, m] = t.split(':').map(Number); return h + (m/60); }
+        function decToClock(n) { const sign = n < -0.001 ? '-' : ''; const abs = Math.abs(n); const h = Math.floor(abs); const m = Math.round((abs - h) * 60); return `${sign}${h}:${m.toString().padStart(2, '0')}`; }
+
+        function renderTable() {
+            const body = document.getElementById('table-body'); body.innerHTML = "";
+            const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+            let mReal = 0, mExtra = 0, mDays = 0;
+
+            for(let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(currentYear, currentMonthIdx, d);
+                const key = `${currentYear}-${currentMonthIdx + 1}-${d}`;
+                const dayData = data[key] || { in: '', out: '', obj: '07:36' };
+                const isWE = date.getDay() === 0 || date.getDay() === 6;
+
+                let worked = 0, diff = 0;
+                if(dayData.in && dayData.out) {
+                    worked = timeToDec(dayData.out) - timeToDec(dayData.in); if(worked < 0) worked += 24;
+                    diff = worked - timeToDec(dayData.obj || '07:36');
+                    mDays++; mReal += diff; mExtra += (diff * 1.5);
+                }
+
+                const row = document.createElement('tr');
+                if(isWE) row.className = "weekend";
+                row.innerHTML = `
+                    <td class="col-dia">
+                        <div class="text-[9px] font-bold ${isWE ? 'text-red-400' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
+                        <div class="text-sm font-bold">${d}</div>
+                    </td>
+                    <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.in || ''}" onblur="update('${key}','in',this.value)" placeholder="--:--"></td>
+                    <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.out || ''}" onblur="update('${key}','out',this.value)" placeholder="--:--"></td>
+                    <td class="col-data font-semibold text-blue-600">${worked > 0 ? decToClock(worked) : '-'}</td>
+                    <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.obj || '07:36'}" onblur="update('${key}','obj',this.value)"></td>
+                    <td class="col-data font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff > 0 ? '+' : '') + decToClock(diff) : ''}</td>
+                `;
+                body.appendChild(row);
+            }
+            updateStats(mDays, mReal, mExtra);
+        }
+
+        function update(key, field, val) {
+            if(!data[key]) data[key] = { in: '', out: '', obj: '07:36' };
+            data[key][field] = val ? formatTime(val) : '';
+            localStorage.setItem('horas_v12', JSON.stringify(data));
+            renderTable();
+        }
+
+        function updateStats(d, r, e) {
+            document.getElementById('stat-days').innerText = d;
+            document.getElementById('stat-real').innerText = (r >= 0 ? '+' : '') + decToClock(r);
+            document.getElementById('stat-extra').innerText = (e >= 0 ? '+' : '') + decToClock(e);
+            let total = 0;
+            Object.keys(data).forEach(k => {
+                const day = data[k];
+                if(day.in && day.out) {
+                    let w = timeToDec(day.out) - timeToDec(day.in); if(w < 0) w += 24;
+                    total += (w - timeToDec(day.obj || '07:36')) * 1.5;
+                }
+            });
+            document.getElementById('stat-total').innerText = decToClock(total);
+        }
+
+        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(); }
+        function renderTabs() {
+            const container = document.getElementById('month-tabs');
+            container.innerHTML = months.map((m, i) => `
+                <button onclick="changeMonth(${i})" class="flex-none px-5 py-2 rounded-full text-[11px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">
+                    ${m.substring(0,3).toUpperCase()}
+                </button>
+            `).join('');
+        }
+
+        window.onload = () => { renderTabs(); renderTable(); };
     </script>
 </body>
 </html>
