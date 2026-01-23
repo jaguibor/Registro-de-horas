@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2972/2972531.png">
     <link rel="manifest" href="manifest.json">
-    <title>Horas 2026 Sevilla</title>
+    <title>Registro de Horas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -18,14 +18,12 @@
         th { background: #f9f9f9; color: #666; font-size: 9px; text-transform: uppercase; padding: 12px 0; border-bottom: 1px solid #eee; text-align: center; }
         td { height: 55px; border-bottom: 1px solid #f2f2f2; text-align: center; vertical-align: middle; position: relative; }
         .col-dia { width: 15%; } .col-data { width: 17%; }
-        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; color: #333; outline: none; padding: 10px 0; }
+        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; color: #333; outline: none; padding: 10px 0; font-variant-numeric: tabular-nums; }
         .weekend { background-color: #fafafa; }
         .holiday { color: #dc2626 !important; }
         .today-row { background-color: #fef9c3 !important; }
         .has-note::after { content: ''; position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; background: #3b82f6; border-radius: 50%; }
         .hidden { display: none !important; }
-        
-        /* Modal simple */
         #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
     </style>
 </head>
@@ -33,12 +31,12 @@
 
     <div id="modal-overlay" class="hidden">
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-            <h3 id="modal-title" class="text-lg font-bold mb-1">Nota del día</h3>
+            <h3 id="modal-title" class="text-lg font-bold mb-1">Nota</h3>
             <p id="modal-holiday-desc" class="text-xs text-red-500 mb-4 font-bold"></p>
-            <textarea id="modal-textarea" class="w-full h-32 p-3 border rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe aquí..."></textarea>
+            <textarea id="modal-textarea" class="w-full h-32 p-3 border rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="¿Qué hiciste hoy?"></textarea>
             <div class="flex gap-2 mt-4">
-                <button onclick="closeModal()" class="flex-1 p-3 text-sm font-bold text-gray-500">Cerrar</button>
-                <button onclick="saveNote()" class="flex-1 p-3 text-sm font-bold bg-blue-600 text-white rounded-xl">Guardar</button>
+                <button onclick="closeModal()" class="flex-1 p-3 text-sm font-bold text-gray-400">Cancelar</button>
+                <button onclick="saveNote()" class="flex-1 p-3 text-sm font-bold bg-blue-600 text-white rounded-xl shadow-lg">Guardar</button>
             </div>
         </div>
     </div>
@@ -46,19 +44,26 @@
     <div class="max-w-md mx-auto">
         <div class="header-sticky px-3 shadow-sm">
             <div class="flex justify-between items-center pt-4 pb-2">
-                <h1 class="text-2xl font-bold tracking-tight">Sevilla 2026</h1>
-                <button id="btn-view" class="bg-blue-600 text-white text-[10px] px-4 py-2 rounded-full font-bold uppercase">Resumen</button>
-            </div>
-            <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
-            <div id="quick-stats" class="grid grid-cols-3 gap-2 py-2">
-                <div class="ios-card p-2 text-center">
-                    <p class="text-[8px] font-bold text-gray-400 uppercase">Días</p>
-                    <p id="stat-days" class="text-lg font-bold">0</p>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Registro de Horas</h1>
+                    <select id="year-select" onchange="changeYear(this.value)" class="bg-transparent text-sm font-bold text-blue-600 outline-none">
+                        <option value="2025">Año 2025</option>
+                        <option value="2026" selected>Año 2026</option>
+                        <option value="2027">Año 2027</option>
+                    </select>
                 </div>
-                <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Real (1x)</p><p id="stat-real" class="text-lg font-bold text-gray-600">0:00</p></div>
-                <div class="ios-card p-2 text-center bg-green-50"><p class="text-[8px] font-bold text-green-700 uppercase">Extra (1.5x)</p><p id="stat-extra" class="text-lg font-bold text-green-700">0:00</p></div>
+                <button id="btn-view" class="bg-blue-600 text-white text-[10px] px-4 py-2 rounded-full font-bold uppercase tracking-widest">Resumen</button>
             </div>
-            <div class="ios-card rounded-b-none">
+
+            <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
+
+            <div id="quick-stats" class="grid grid-cols-3 gap-2 py-2">
+                <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-lg font-bold">0</p></div>
+                <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Real</p><p id="stat-real" class="text-lg font-bold text-gray-600">0:00</p></div>
+                <div class="ios-card p-2 text-center bg-green-50 border border-green-100"><p class="text-[8px] font-bold text-green-700 uppercase">Extra (1.5x)</p><p id="stat-extra" class="text-lg font-bold text-green-700">0:00</p></div>
+            </div>
+
+            <div class="ios-card rounded-b-none border-b-0">
                 <table>
                     <thead>
                         <tr><th class="col-dia">Día</th><th class="col-data">Ent.</th><th class="col-data">Sal.</th><th class="col-data text-blue-600">Real</th><th class="col-data">Obj.</th><th class="col-data">Dif.</th></tr>
@@ -75,12 +80,17 @@
                 </table>
             </div>
             <div class="ios-card p-4 bg-gray-900 text-white flex justify-between items-center mb-6">
-                <span class="text-xs font-bold uppercase opacity-60">Saldo Total 2026</span>
-                <span id="stat-total" class="text-xl font-bold">00:00</span>
+                <span id="label-anual" class="text-xs font-bold uppercase opacity-60">Saldo 2026</span>
+                <span id="stat-total" class="text-xl font-bold font-mono">00:00</span>
             </div>
-            <div class="flex gap-2 mb-10">
-                <button onclick="exportToCSV()" class="flex-1 bg-green-600 text-white p-3 rounded-xl text-[10px] font-bold uppercase shadow-sm">Exportar Excel (CSV)</button>
-                <button id="btn-import" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase shadow-sm">Cargar Backup</button>
+            <div class="flex flex-col gap-2 mb-10">
+                <div class="flex gap-2">
+                    <button onclick="exportToCSV()" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase shadow-sm">Exportar Excel (CSV)</button>
+                    <button id="btn-import-btn" onclick="document.getElementById('file-input').click()" class="flex-1 bg-white border p-3 rounded-xl text-[10px] font-bold uppercase shadow-sm">Cargar Backup (JSON)</button>
+                    <button onclick="downloadJSON()" class="p-3 bg-white border rounded-xl shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -95,17 +105,15 @@
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
         
-        // FESTIVOS SEVILLA 2026 (Estimados y Fijos)
-        const holidays2026 = {
-            "1-1": "Año Nuevo", "1-6": "Epifanía", "2-28": "Día de Andalucía",
-            "4-2": "Jueves Santo", "4-3": "Viernes Santo", "4-22": "Miércoles de Feria",
-            "5-1": "Fiesta del Trabajo", "6-4": "Corpus Christi", "8-15": "Asunción",
-            "10-12": "Fiesta Nacional", "11-2": "Todos los Santos (Lunes)",
-            "12-7": "Día Constitución (Lunes)", "12-8": "Inmaculada", "12-25": "Navidad"
+        // Festivos estándar (se pueden ampliar según el año seleccionado)
+        const holidays = {
+            "1-1": "Año Nuevo", "1-6": "Epifanía", "5-1": "Trabajo", "8-15": "Asunción", 
+            "10-12": "Hispanidad", "11-1": "Santi", "12-6": "Constitución", "12-8": "Inmaculada", "12-25": "Navidad"
         };
 
+        let currentYear = 2026;
         let currentMonthIdx = new Date().getMonth();
-        let data = JSON.parse(localStorage.getItem('horas_2026_v7')) || {};
+        let data = JSON.parse(localStorage.getItem('horas_multianual_v8')) || {};
         let activeKey = null;
 
         function formatTime(val) {
@@ -143,42 +151,40 @@
         function renderTable() {
             const body = document.getElementById('table-body');
             body.innerHTML = "";
-            const year = 2026;
-            const daysInMonth = new Date(year, currentMonthIdx + 1, 0).getDate();
-            const todayKey = `${year}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
+            const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+            const todayKey = `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
             
             let mReal = 0, mExtra = 0, mDays = 0;
 
             for(let d = 1; d <= daysInMonth; d++) {
-                const date = new Date(year, currentMonthIdx, d);
-                const key = `${year}-${currentMonthIdx + 1}-${d}`;
+                const date = new Date(currentYear, currentMonthIdx, d);
+                const key = `${currentYear}-${currentMonthIdx + 1}-${d}`;
                 const hKey = `${currentMonthIdx + 1}-${d}`;
                 const dayData = data[key] || { in: '', out: '', obj: '07:36', note: '' };
-                
                 const isWE = date.getDay() === 0 || date.getDay() === 6;
-                const holidayName = holidays2026[hKey];
+                const hName = holidays[hKey];
                 const isToday = key === todayKey;
-                
+
                 let worked = 0, diff = 0;
                 if(dayData.in && dayData.out) {
                     worked = timeToDec(dayData.out) - timeToDec(dayData.in);
                     if(worked < 0) worked += 24;
-                    diff = worked - timeToDec(dayData.obj);
+                    diff = worked - timeToDec(dayData.obj || '07:36');
                     mDays++; mReal += diff; mExtra += (diff * 1.5);
                 }
 
                 const row = document.createElement('tr');
-                row.id = isToday ? "scroll-target" : "";
-                if(isWE || holidayName) row.className = isToday ? "today-row" : "weekend";
+                if(isToday) row.id = "scroll-target";
+                if(isWE || hName) row.className = isToday ? "today-row" : "weekend";
                 else if(isToday) row.className = "today-row";
 
                 row.innerHTML = `
-                    <td class="col-dia ${dayData.note ? 'has-note' : ''}" onclick="openNote('${key}', '${holidayName || ''}')">
-                        <div class="text-[8px] font-bold ${holidayName || isWE ? 'holiday' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
-                        <div class="text-sm font-bold ${holidayName ? 'holiday underline' : ''}">${d}</div>
+                    <td class="col-dia ${dayData.note ? 'has-note' : ''}" onclick="openNote('${key}', '${hName || ''}')">
+                        <div class="text-[8px] font-bold ${hName || isWE ? 'holiday' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
+                        <div class="text-sm font-bold ${hName ? 'holiday underline' : ''}">${d}</div>
                     </td>
-                    <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.in}" onblur="update('${key}','in',this.value)" placeholder="--:--"></td>
-                    <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.out}" onblur="update('${key}','out',this.value)" placeholder="--:--"></td>
+                    <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.in || ''}" onblur="update('${key}','in',this.value)" placeholder="--:--"></td>
+                    <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.out || ''}" onblur="update('${key}','out',this.value)" placeholder="--:--"></td>
                     <td class="col-data font-bold text-blue-600">${worked > 0 ? decToClock(worked) : '-'}</td>
                     <td class="col-data"><input type="text" inputmode="decimal" value="${dayData.obj || '07:36'}" onblur="update('${key}','obj',this.value)"></td>
                     <td class="col-data font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff > 0 ? '+' : '') + decToClock(diff) : ''}</td>
@@ -186,35 +192,15 @@
                 body.appendChild(row);
             }
             updateStats(mDays, mReal, mExtra);
-            if(currentMonthIdx === new Date().getMonth()) scrollToday();
+            if(currentMonthIdx === new Date().getMonth() && currentYear == new Date().getFullYear()) {
+                setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+            }
         }
-
-        function scrollToday() {
-            const el = document.getElementById('scroll-target');
-            if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-
-        function openNote(key, holiday) {
-            activeKey = key;
-            if(!data[key]) data[key] = { in: '', out: '', obj: '07:36', note: '' };
-            document.getElementById('modal-title').innerText = `Día ${key.split('-')[2]} de ${months[currentMonthIdx]}`;
-            document.getElementById('modal-holiday-desc').innerText = holiday ? "★ " + holiday : "";
-            document.getElementById('modal-textarea').value = data[key].note || "";
-            document.getElementById('modal-overlay').classList.remove('hidden');
-        }
-
-        function saveNote() {
-            data[activeKey].note = document.getElementById('modal-textarea').value;
-            localStorage.setItem('horas_2026_v7', JSON.stringify(data));
-            closeModal(); renderTable();
-        }
-
-        function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
 
         function update(key, field, val) {
             if(!data[key]) data[key] = { in: '', out: '', obj: '07:36', note: '' };
             data[key][field] = formatTime(val);
-            localStorage.setItem('horas_2026_v7', JSON.stringify(data));
+            localStorage.setItem('horas_multianual_v8', JSON.stringify(data));
             renderTable();
         }
 
@@ -224,28 +210,65 @@
             document.getElementById('stat-extra').innerText = decToClock(e);
             let total = 0;
             Object.keys(data).forEach(k => {
-                const day = data[k];
-                if(day.in && day.out) {
-                    let w = timeToDec(day.out) - timeToDec(day.in);
-                    if(w < 0) w += 24;
-                    total += (w - timeToDec(day.obj)) * 1.5;
+                if(k.startsWith(currentYear)) {
+                    const day = data[k];
+                    if(day.in && day.out) {
+                        let w = timeToDec(day.out) - timeToDec(day.in);
+                        if(w < 0) w += 24;
+                        total += (w - timeToDec(day.obj || '07:36')) * 1.5;
+                    }
                 }
             });
             document.getElementById('stat-total').innerText = decToClock(total);
+            document.getElementById('label-anual').innerText = `Saldo ${currentYear}`;
         }
 
+        function changeYear(y) { currentYear = parseInt(y); renderTable(); }
+
+        function openNote(key, holiday) {
+            activeKey = key;
+            if(!data[key]) data[key] = { in: '', out: '', obj: '07:36', note: '' };
+            document.getElementById('modal-title').innerText = `${key.split('-')[2]} de ${months[key.split('-')[1]-1]}`;
+            document.getElementById('modal-holiday-desc').innerText = holiday || "";
+            document.getElementById('modal-textarea').value = data[key].note || "";
+            document.getElementById('modal-overlay').classList.remove('hidden');
+        }
+
+        function saveNote() {
+            data[activeKey].note = document.getElementById('modal-textarea').value;
+            localStorage.setItem('horas_multianual_v8', JSON.stringify(data));
+            closeModal(); renderTable();
+        }
+
+        function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+
         function exportToCSV() {
-            let csv = "Fecha,Entrada,Salida,Objetivo,Nota\n";
+            let csv = "\uFEFFFecha;Entrada;Salida;Real;Objetivo;Diferencia;Nota\n";
             Object.keys(data).sort().forEach(k => {
                 const d = data[k];
-                csv += `${k},${d.in},${d.out},${d.obj},"${d.note || ''}"\n`;
+                if(d.in && d.out) {
+                    let w = timeToDec(d.out) - timeToDec(d.in); if(w < 0) w += 24;
+                    let df = w - timeToDec(d.obj);
+                    csv += `${k};${d.in};${d.out};${decToClock(w)};${d.obj};${decToClock(df)};"${d.note || ''}"\n`;
+                }
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = "registro_horas_2026.csv";
+            link.download = `registro_horas_completo.csv`;
             link.click();
         }
+
+        function downloadJSON() {
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "backup_horas.json"; a.click();
+        }
+
+        document.getElementById('file-input').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => { data = JSON.parse(ev.target.result); localStorage.setItem('horas_multianual_v8', JSON.stringify(data)); renderTable(); };
+            reader.readAsText(e.target.files[0]);
+        };
 
         function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(); }
         function renderTabs() {
@@ -268,10 +291,11 @@
 
         function renderAnnual() {
             const body = document.getElementById('summary-body');
-            body.innerHTML = months.map((m, i) => {
+            body.innerHTML = `<tr class="bg-gray-100"><th class="p-4 text-left">Mes</th><th class="text-center">Días</th><th class="p-4 text-right">Extra (1.5x)</th></tr>` + 
+            months.map((m, i) => {
                 let md = 0, me = 0;
                 Object.keys(data).forEach(k => {
-                    if(k.split('-')[1] == i+1) {
+                    if(k.startsWith(currentYear) && k.split('-')[1] == i+1) {
                         const day = data[k];
                         if(day.in && day.out) {
                             let w = timeToDec(day.out) - timeToDec(day.in);
@@ -280,7 +304,7 @@
                         }
                     }
                 });
-                return `<tr class="border-b"><td class="p-4 font-bold">${m}</td><td class="text-center">${md} d</td><td class="p-4 text-right font-bold ${me >= 0 ? 'text-green-600' : 'text-red-500'}">${decToClock(me)}</td></tr>`;
+                return `<tr class="border-b"><td class="p-4 font-bold">${m}</td><td class="text-center">${md}</td><td class="p-4 text-right font-bold ${me >= 0 ? 'text-green-600' : 'text-red-500'}">${decToClock(me)}</td></tr>`;
             }).join('');
         }
 
