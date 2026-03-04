@@ -5,98 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V5.1</title>
+    <title>Registro de Horas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
         body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--ios-bg); margin: 0; color: #1c1c1e; -webkit-tap-highlight-color: transparent; }
         .header-sticky { position: sticky; top: 0; z-index: 100; background: rgba(242, 242, 247, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding-top: env(safe-area-inset-top); border-bottom: 0.5px solid #d1d1d6; }
-        .ios-card { background: white; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
+        .ios-card { background: white; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
         table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-        th { background: #fbfbfd; color: #8e8e93; font-size: 7px; text-transform: uppercase; padding: 8px 0; text-align: center; font-weight: 700; border-bottom: 0.5px solid #e5e5ea; }
-        td { border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; position: relative; padding: 5px 0; }
-        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 13px; outline: none; font-variant-numeric: tabular-nums; }
-        .col-dia { width: 12%; } .col-data { width: 17%; } .col-total { width: 15%; } .col-obj { width: 16%; } .col-extra { width: 15%; }
+        th { background: #fbfbfd; color: #8e8e93; font-size: 8px; text-transform: uppercase; padding: 10px 0; text-align: center; font-weight: 700; border-bottom: 0.5px solid #e5e5ea; }
+        td { border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; position: relative; padding: 4px 0; }
+        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 14px; outline: none; font-variant-numeric: tabular-nums; }
+        select { background: #f2f2f7; border-radius: 4px; font-size: 10px; font-weight: bold; appearance: none; padding: 2px 4px; text-align: center; }
+        .col-dia { width: 14%; } .col-tipo { width: 12%; } .col-data { width: 18%; } .col-res { width: 16%; }
         .weekend { background-color: #f9f9fb; }
+        .holiday-text { color: #ff3b30 !important; font-weight: bold; }
         .today-row { background-color: #fff9c4 !important; }
-        .tipo-tag { font-size: 7px; font-weight: 900; color: #007aff; display: block; margin-top: -1px; }
-        .has-note::after { content: ''; position: absolute; top: 4px; left: 4px; width: 4px; height: 4px; background: #ff9500; border-radius: 50%; }
+        .has-note::after { content: ''; position: absolute; top: 4px; right: 4px; width: 4px; height: 4px; background: #007aff; border-radius: 50%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-
-        /* FIX #1: Modal con clase propia en lugar de Tailwind "hidden" para evitar conflicto con display:flex */
-        #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200;
-            align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-        #modal-overlay.is-open { display: flex; }
+        .year-select { background: #e5e5ea; border-radius: 8px; padding: 2px 8px; font-size: 14px; font-weight: bold; appearance: none; }
     </style>
 </head>
 <body class="pb-20">
 
-    <!-- FIX #1: Quitada clase "hidden" de Tailwind; la visibilidad se controla con "is-open" -->
-    <div id="modal-overlay" onclick="if(event.target==this) closeModal()">
-        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl border border-gray-100">
-            <h3 id="modal-date" class="text-lg font-bold mb-4 text-center text-blue-600"></h3>
-            <div class="mb-4">
-                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Tipo de Jornada</label>
-                <select id="modal-tipo" class="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold appearance-none">
-                    <option value="C">Jornada Completa</option>
-                    <option value="P">Jornada Partida</option>
-                </select>
-            </div>
-            <div class="mb-5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Nota o Incidencia</label>
-                <textarea id="modal-text" class="w-full h-24 p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe aquí..."></textarea>
-            </div>
-            <div class="flex gap-3">
+    <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-[200] hidden items-center justify-center p-6 backdrop-blur-sm" onclick="if(event.target==this) closeModal()">
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl">
+            <h3 id="modal-date" class="text-lg font-bold mb-4 text-center"></h3>
+            <textarea id="modal-text" class="w-full h-32 p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Añadir nota..."></textarea>
+            <div class="flex gap-3 mt-5">
                 <button onclick="closeModal()" class="flex-1 p-3 text-sm font-bold text-gray-400">Cerrar</button>
-                <button onclick="saveModalData()" class="flex-1 p-3 text-sm font-bold bg-black text-white rounded-xl">Guardar</button>
+                <button onclick="saveNote()" class="flex-1 p-3 text-sm font-bold bg-black text-white rounded-xl">Guardar</button>
             </div>
         </div>
     </div>
 
     <div class="max-w-md mx-auto">
-        <div class="header-sticky px-2">
-            <div class="flex justify-between items-center pt-5 pb-1">
-                <h1 class="text-lg font-bold tracking-tight">Registro</h1>
-                <div class="flex gap-1">
-                    <button onclick="setGlobalObjective()" class="bg-blue-50 text-blue-600 px-2 py-1.5 rounded-lg text-[9px] font-bold border border-blue-100 uppercase">Obj. Anual</button>
-                    <select id="year-selector" class="bg-gray-200 px-1 py-1 rounded font-bold text-xs" onchange="changeYear(this.value)"></select>
-                </div>
+        <div class="header-sticky px-3">
+            <div class="flex justify-between items-center pt-5 pb-2">
+                <h1 class="text-xl font-bold tracking-tight">Registro</h1>
+                <select id="year-selector" class="year-select" onchange="changeYear(this.value)"></select>
             </div>
+            <div id="month-tabs" class="flex overflow-x-auto gap-2 py-2 no-scrollbar"></div>
             
-            <div id="month-tabs" class="flex overflow-x-auto gap-1 py-1 no-scrollbar mb-1"></div>
-            
-            <div class="grid grid-cols-5 gap-1 py-1 text-center">
-                <div class="ios-card p-1.5 bg-gray-50/50"><p class="text-[6px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-[11px] font-bold">0</p></div>
-                <div class="ios-card p-1.5 border-l-2 border-blue-200"><p class="text-[6px] font-bold text-gray-400 uppercase">Extras</p><p id="stat-extra-raw" class="text-[11px] font-bold">0:00</p></div>
-                <div class="ios-card p-1.5 bg-blue-50/30"><p class="text-[6px] font-bold text-blue-600 uppercase">Conv. Ext</p><p id="stat-conv" class="text-[11px] font-bold text-blue-700">0:00</p></div>
-                <div class="ios-card p-1.5 bg-indigo-50/50"><p class="text-[6px] font-bold text-indigo-500 uppercase">Noct.</p><p id="stat-noc" class="text-[11px] font-bold text-indigo-700">0:00</p></div>
-                <div class="ios-card p-1.5 bg-[#1c1c1e] text-white"><p class="text-[6px] font-bold text-gray-400 uppercase">Suma Total</p><p id="stat-total" class="text-[11px] font-bold">0:00</p></div>
+            <div class="grid grid-cols-4 gap-1.5 py-2">
+                <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-sm font-bold">0</p></div>
+                <div class="ios-card p-2 text-center"><p class="text-[8px] font-bold text-gray-400 uppercase">Dif. Mes</p><p id="stat-real" class="text-sm font-bold">0:00</p></div>
+                <div class="ios-card p-2 text-center bg-indigo-50/50"><p class="text-[8px] font-bold text-indigo-600 uppercase">Noc.</p><p id="stat-noc" class="text-sm font-bold text-indigo-700">0:00</p></div>
+                <div class="ios-card p-2 text-center bg-green-50"><p class="text-[8px] font-bold text-green-700 uppercase">Extra+Noc</p><p id="stat-extra" class="text-sm font-bold text-green-700">0:00</p></div>
             </div>
 
-            <div class="ios-card rounded-b-none border-b-0 shadow-none mt-2">
+            <div class="ios-card rounded-b-none border-b-0 shadow-none">
                 <table>
                     <thead>
                         <tr>
                             <th class="col-dia">Día</th>
-                            <th class="col-data">Entrada</th>
-                            <th class="col-data">Salida</th>
-                            <th class="col-total text-blue-600">Total</th>
-                            <th class="col-obj">Objetivo</th>
-                            <th class="col-extra">Extras</th>
+                            <th class="col-tipo">Tipo</th>
+                            <th class="col-data">Ent.</th>
+                            <th class="col-data">Sal.</th>
+                            <th class="col-res text-blue-600">Real</th>
+                            <th class="col-res">Dif.</th>
                         </tr>
                     </thead>
                 </table>
             </div>
         </div>
 
-        <div class="px-2">
+        <div class="px-3 pt-1">
             <div class="ios-card rounded-t-none border-t-0 mb-4">
                 <table id="main-table">
                     <colgroup>
-                        <col class="col-dia"><col class="col-data"><col class="col-data"><col class="col-total"><col class="col-obj"><col class="col-extra">
+                        <col class="col-dia"><col class="col-tipo"><col class="col-data"><col class="col-data"><col class="col-res"><col class="col-res">
                     </colgroup>
-                    <tbody id="table-body" class="text-xs"></tbody>
+                    <tbody id="table-body" class="text-sm"></tbody>
                 </table>
+            </div>
+
+            <div class="ios-card p-4 bg-[#1c1c1e] text-white flex justify-between items-center mb-6">
+                <p class="text-[10px] font-bold uppercase opacity-60">Saldo Anual Total</p>
+                <span id="stat-total" class="text-xl font-bold font-mono">00:00</span>
             </div>
 
             <div class="flex flex-col gap-2 mb-10">
@@ -114,15 +100,52 @@
     <script>
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+        const holidays = {"1-1":1, "1-6":1, "5-1":1, "8-15":1, "10-12":1, "11-1":1, "12-6":1, "12-8":1, "12-25":1};
         
+        // --- LÓGICA DE DATOS Y MIGRACIÓN ---
         let currentYear = Math.max(2026, new Date().getFullYear());
         let currentMonthIdx = new Date().getMonth();
         let data = JSON.parse(localStorage.getItem('horas_multiy_v2')) || {};
+
+        // Si v2 está vacío, intentamos recuperar de v1
+        if (Object.keys(data).length === 0) {
+            const oldData = JSON.parse(localStorage.getItem('horas_multiy_v1'));
+            if (oldData) {
+                // Adaptamos el formato antiguo al nuevo (C = Continuo por defecto)
+                Object.keys(oldData).forEach(key => {
+                    const d = oldData[key];
+                    data[key] = {
+                        t: 'C',
+                        i1: d.in || '',
+                        o1: d.out || '',
+                        i2: '',
+                        o2: '',
+                        obj: d.obj || '07:36',
+                        note: d.note || ''
+                    };
+                });
+                localStorage.setItem('horas_multiy_v2', JSON.stringify(data));
+                console.log("Migración completada.");
+            }
+        }
+        // -----------------------------------
+
         let activeKey = null;
 
+        function initYearSelector() {
+            const sel = document.getElementById('year-selector');
+            sel.innerHTML = "";
+            for(let y=2026; y<=2030; y++) {
+                const opt = document.createElement('option');
+                opt.value = y; opt.innerText = y;
+                if(y === currentYear) opt.selected = true;
+                sel.appendChild(opt);
+            }
+        }
+
         function tToD(t) {
-            if(!t || t === "") return 0;
-            let clean = t.toString().replace(',', '.').replace('.', ':').trim();
+            if(!t) return 0;
+            let clean = t.replace('.', ':').trim();
             if(!clean.includes(':')) {
                 if(clean.length <= 2) clean += ":00";
                 else clean = clean.slice(0,-2) + ":" + clean.slice(-2);
@@ -139,85 +162,74 @@
             return `${s}${h}:${m.toString().padStart(2, '0')}`;
         }
 
-        // Bonus nocturno: 15 min (0.25h) por cada hora trabajada entre 22:00 y 06:00.
-        // El bucle acumula las horas nocturnas en pasos de 0.05h y devuelve nightHours * 0.25
-        // (es decir, un cuarto de las horas nocturnas = 15 min por hora nocturna).
-        function calcNightBonus(s, e) {
+        function calcNoc(s, e) {
             if(!s || !e) return 0;
-            let start = tToD(s), end = tToD(e), nightHours = 0;
+            let start = tToD(s), end = tToD(e), noc = 0;
             if(end < start) end += 24;
-            for(let h = start; h < end; h += 0.05) {
+            for(let h = start; h < end; h += 0.25) {
                 let hour = h % 24;
-                if(hour >= 22 || hour < 6) nightHours += 0.05;
+                if(hour >= 22 || hour < 6) noc += 0.25;
             }
-            return nightHours * 0.25; // 15 min de bonus por cada hora nocturna trabajada
+            return noc * 0.25; 
         }
 
         function renderTable(shouldScroll = false) {
             const body = document.getElementById('table-body'); body.innerHTML = "";
-            const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+            const daysCount = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
             const today = new Date();
-            // FIX #3: todayKey usaba new Date() tres veces sin guardar año — podía fallar
-            // cerca de medianoche; ahora se construye una sola vez desde "today"
             const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
             
-            let mExtraRaw = 0, mNocBonus = 0, mDays = 0;
+            let mReal = 0, mNoc = 0, mDays = 0;
 
-            for(let d = 1; d <= daysInMonth; d++) {
+            for(let d = 1; d <= daysCount; d++) {
                 const date = new Date(currentYear, currentMonthIdx, d);
                 const key = `${currentYear}-${currentMonthIdx + 1}-${d}`;
                 const dD = data[key] || { t: 'C', i1:'', o1:'', i2:'', o2:'', obj:'07:36', note:'' };
-                
-                let worked = 0, bonusNoc = 0;
+                const isWE = date.getDay() === 0 || date.getDay() === 6;
+                const isHol = holidays[`${currentMonthIdx+1}-${d}`];
+
+                let worked = 0, noc = 0;
                 if(dD.i1 && dD.o1) {
                     let w1 = tToD(dD.o1) - tToD(dD.i1); if(w1 < 0) w1 += 24;
-                    worked += w1; bonusNoc += calcNightBonus(dD.i1, dD.o1);
+                    worked += w1; noc += calcNoc(dD.i1, dD.o1);
                 }
                 if(dD.t === 'P' && dD.i2 && dD.o2) {
                     let w2 = tToD(dD.o2) - tToD(dD.i2); if(w2 < 0) w2 += 24;
-                    worked += w2; bonusNoc += calcNightBonus(dD.i2, dD.o2);
+                    worked += w2; noc += calcNoc(dD.i2, dD.o2);
                 }
 
-                const objVal = tToD(dD.obj || '07:36');
-                const diff = worked > 0 ? worked - objVal : 0;
-                if(worked > 0) { mDays++; mExtraRaw += diff; mNocBonus += bonusNoc; }
+                const diff = worked > 0 ? worked - tToD(dD.obj || '07:36') : 0;
+                if(worked > 0) { mDays++; mReal += diff; mNoc += noc; }
 
                 const row = document.createElement('tr');
-                // FIX #4: Antes se asignaba className="today-row" y luego classList.add("weekend"),
-                // pero classList.add sobre una string vacía funciona; el problema era el orden inverso:
-                // si weekend se aplicaba primero y today después, today sobreescribía "weekend".
-                // Ahora today-row siempre gana (tiene !important en CSS) y ambas clases conviven.
-                if(key === todayKey) { row.classList.add("today-row"); row.id = "scroll-target"; }
-                if(date.getDay() === 0 || date.getDay() === 6) row.classList.add("weekend");
+                if(key === todayKey) { row.className = "today-row"; row.id = "scroll-target"; }
+                else if(isWE || isHol) row.className = "weekend";
 
                 row.innerHTML = `
-                    <td class="col-dia ${dD.note ? 'has-note' : ''}" onclick="openModal('${key}', ${d})">
-                        <div class="text-[6px] font-bold text-gray-400 uppercase">${daysShort[date.getDay()]}</div>
-                        <div class="text-[12px] font-bold">${d}</div>
-                        <span class="tipo-tag">(${dD.t})</span>
+                    <td class="col-dia ${dD.note ? 'has-note' : ''}" onclick="openNote('${key}', ${d})">
+                        <div class="text-[8px] font-bold ${isWE || isHol ? 'holiday-text' : 'text-gray-400'}">${daysShort[date.getDay()]}</div>
+                        <div class="text-xs font-bold">${d}</div>
+                    </td>
+                    <td class="col-tipo">
+                        <select onchange="upd('${key}','t',this.value)">
+                            <option value="C" ${dD.t==='C'?'selected':''}>C</option>
+                            <option value="P" ${dD.t==='P'?'selected':''}>P</option>
+                        </select>
                     </td>
                     <td class="col-data">
-                        <input type="text" value="${dD.i1||''}" onblur="upd('${key}','i1',this.value)" placeholder="--:--">
-                        ${dD.t === 'P' ? `<input type="text" value="${dD.i2||''}" onblur="upd('${key}','i2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
+                        <input type="text" inputmode="decimal" value="${dD.i1||''}" onblur="upd('${key}','i1',this.value)" placeholder="--.--">
+                        ${dD.t === 'P' ? `<input type="text" inputmode="decimal" value="${dD.i2||''}" onblur="upd('${key}','i2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
                     </td>
                     <td class="col-data">
-                        <input type="text" value="${dD.o1||''}" onblur="upd('${key}','o1',this.value)" placeholder="--:--">
-                        ${dD.t === 'P' ? `<input type="text" value="${dD.o2||''}" onblur="upd('${key}','o2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
+                        <input type="text" inputmode="decimal" value="${dD.o1||''}" onblur="upd('${key}','o1',this.value)" placeholder="--.--">
+                        ${dD.t === 'P' ? `<input type="text" inputmode="decimal" value="${dD.o2||''}" onblur="upd('${key}','o2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
                     </td>
-                    <td class="col-total font-semibold text-blue-600">${worked > 0 ? dToC(worked) : '-'}</td>
-                    <td class="col-obj"><input type="text" value="${dD.obj||'07:36'}" onblur="upd('${key}','obj',this.value)"></td>
-                    <td class="col-extra font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff>=0?'+':'')+dToC(diff) : ''}</td>
+                    <td class="col-res font-semibold text-blue-600">${worked > 0 ? dToC(worked) : '-'}</td>
+                    <td class="col-res font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff>=0?'+':'')+dToC(diff) : ''}</td>
                 `;
                 body.appendChild(row);
             }
-            
-            document.getElementById('stat-days').innerText = mDays;
-            document.getElementById('stat-extra-raw').innerText = dToC(mExtraRaw);
-            document.getElementById('stat-conv').innerText = dToC(mExtraRaw * 1.5);
-            document.getElementById('stat-noc').innerText = dToC(mNocBonus);
-            document.getElementById('stat-total').innerText = dToC((mExtraRaw * 1.5) + mNocBonus);
-
-            // FIX #3: Añadida comprobación de año además de mes para el auto-scroll
+            updateStats(mDays, mReal, mNoc);
             if(shouldScroll && currentMonthIdx === today.getMonth() && currentYear === today.getFullYear()) {
                 setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
             }
@@ -225,69 +237,45 @@
 
         function upd(k, f, v) {
             if(!data[k]) data[k] = { t: 'C', i1:'', o1:'', i2:'', o2:'', obj:'07:36', note:'' };
-            data[k][f] = v;
-            localStorage.setItem('horas_multiy_v2', JSON.stringify(data));
-            renderTable(false);
-        }
-
-        function setGlobalObjective() {
-            const newObj = prompt("Objetivo para todo el año (HH:MM):", "07:36");
-            if (newObj && /^[0-9]{1,2}:[0-9]{2}$/.test(newObj)) {
-                for(let m = 1; m <= 12; m++) {
-                    let days = new Date(currentYear, m, 0).getDate();
-                    for(let d = 1; d <= days; d++) {
-                        let k = `${currentYear}-${m}-${d}`;
-                        if(!data[k]) data[k] = { t: 'C', i1:'', o1:'', i2:'', o2:'', obj: newObj, note:'' };
-                        else data[k].obj = newObj;
-                    }
-                }
+            if(data[k][f] !== v) {
+                data[k][f] = v;
                 localStorage.setItem('horas_multiy_v2', JSON.stringify(data));
-                renderTable();
+                renderTable(false);
             }
         }
 
-        // FIX #1: openModal/closeModal usan classList en lugar de style.display
-        function openModal(k, d) { 
-            activeKey = k; 
-            document.getElementById('modal-date').innerText = d + " de " + months[currentMonthIdx]; 
-            document.getElementById('modal-tipo').value = data[k]?.t || 'C';
-            document.getElementById('modal-text').value = data[k]?.note || ""; 
-            document.getElementById('modal-overlay').classList.add('is-open');
-        }
-        function closeModal() { 
-            document.getElementById('modal-overlay').classList.remove('is-open'); 
-        }
-
-        function saveModalData() {
-            if(!data[activeKey]) data[activeKey] = { t: 'C', i1:'', o1:'', i2:'', o2:'', obj:'07:36', note:'' };
-            data[activeKey].t = document.getElementById('modal-tipo').value;
-            data[activeKey].note = document.getElementById('modal-text').value;
-            localStorage.setItem('horas_multiy_v2', JSON.stringify(data));
-            closeModal();
-            renderTable();
-        }
-
-        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(true); }
-
-        // FIX #5: changeYear ahora también re-renderiza las tabs de mes (igual que antes)
-        function changeYear(y) { currentYear = parseInt(y); renderTabs(); renderTable(true); }
-
-        function renderTabs() {
-            document.getElementById('month-tabs').innerHTML = months.map((m, i) => 
-                `<button onclick="changeMonth(${i})" class="flex-none px-3 py-2 rounded-full text-[10px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">${m.toUpperCase()}</button>`
-            ).join('');
+        function updateStats(d, r, n) {
+            document.getElementById('stat-days').innerText = d;
+            document.getElementById('stat-real').innerText = (r >= 0 ? '+' : '') + dToC(r);
+            document.getElementById('stat-noc').innerText = dToC(n);
+            let extraConNoc = (r * 1.5) + n;
+            document.getElementById('stat-extra').innerText = (extraConNoc >= 0 ? '+' : '') + dToC(extraConNoc);
+            
+            let total = 0;
+            Object.keys(data).forEach(k => {
+                if(k.startsWith(currentYear)) {
+                    let day = data[k], worked = 0, nocDay = 0;
+                    let w1 = tToD(day.o1) - tToD(day.i1); if(w1 < 0) w1 += 24; worked += w1;
+                    nocDay += calcNoc(day.i1, day.o1);
+                    if(day.t === 'P') { 
+                        let w2 = tToD(day.o2) - tToD(day.i2); if(w2 < 0) w2 += 24; worked += w2; 
+                        nocDay += calcNoc(day.i2, day.o2);
+                    }
+                    if(worked > 0) total += ((worked - tToD(day.obj || '07:36')) * 1.5) + nocDay;
+                }
+            });
+            document.getElementById('stat-total').innerText = dToC(total);
         }
 
         function downloadJSON() {
             const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `backup_${currentYear}.json`; a.click();
+            a.download = `backup_horas_${new Date().toISOString().slice(0,10)}.json`; a.click();
         }
 
         document.getElementById('file-input').onchange = (e) => {
             const reader = new FileReader();
             reader.onload = (ev) => {
-                // FIX #6: Añadido try/catch y confirmación antes de sobrescribir datos
                 try {
                     const imported = JSON.parse(ev.target.result);
                     if(confirm("¿Restaurar copia? Se sobrescribirán los datos actuales.")) {
@@ -295,39 +283,32 @@
                         localStorage.setItem('horas_multiy_v2', JSON.stringify(data));
                         renderTable(true);
                     }
-                } catch(err) { alert("Archivo no válido."); }
+                } catch(err) { alert("Archivo no válido"); }
             };
             reader.readAsText(e.target.files[0]);
         };
 
-        // FIX #7: exportToCSV con guardia para días sin datos (evita horas negativas en el CSV)
         function exportToCSV() {
-            let csv = "\uFEFFFecha;Tipo;E1;S1;E2;S2;Total;Obj;Extras;Nota\n";
+            let csv = "\uFEFFFecha;Tipo;Entrada 1;Salida 1;Entrada 2;Salida 2;Total;Objetivo;Nota\n";
             Object.keys(data).sort().forEach(k => {
                 const d = data[k];
-                let w = 0;
-                if(d.i1 && d.o1) { // FIX #7: solo calcular si hay datos reales
-                    let w1 = tToD(d.o1) - tToD(d.i1); if(w1 < 0) w1 += 24; w += w1;
-                }
-                if(d.t === 'P' && d.i2 && d.o2) {
-                    let w2 = tToD(d.o2) - tToD(d.i2); if(w2 < 0) w2 += 24; w += w2;
-                }
-                const extras = w > 0 ? w - tToD(d.obj || '07:36') : 0;
-                csv += `${k};${d.t};${d.i1};${d.o1};${d.i2||''};${d.o2||''};${dToC(w)};${d.obj||'07:36'};${dToC(extras)};"${d.note||''}"\n`;
+                let w = (tToD(d.o1)-tToD(d.i1)) + (d.t==='P'?(tToD(d.o2)-tToD(d.i2)):0);
+                csv += `${k};${d.t};${d.i1};${d.o1};${d.i2||''};${d.o2||''};${dToC(w)};${d.obj};"${d.note||''}"\n`;
             });
             const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
             a.download = `registro_${currentYear}.csv`; a.click();
         }
 
-        window.onload = () => { 
-            const sel = document.getElementById('year-selector');
-            for(let y = 2026; y <= 2030; y++) {
-                const opt = document.createElement('option'); opt.value = y; opt.innerText = y;
-                if(y === currentYear) opt.selected = true;
-                sel.appendChild(opt);
-            }
-            renderTabs(); renderTable(true); 
-        };
+        function openNote(k, d) { activeKey = k; document.getElementById('modal-date').innerText = d + " " + months[currentMonthIdx]; document.getElementById('modal-text').value = data[k]?.note || ""; document.getElementById('modal-overlay').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+        function saveNote() { upd(activeKey, 'note', document.getElementById('modal-text').value); closeModal(); }
+        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(true); }
+        function changeYear(y) { currentYear = parseInt(y); renderTable(true); }
+        function renderTabs() {
+            document.getElementById('month-tabs').innerHTML = months.map((m, i) => `<button onclick="changeMonth(${i})" class="flex-none px-4 py-2 rounded-full text-[10px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">${m.toUpperCase()}</button>`).join('');
+        }
+
+        window.onload = () => { initYearSelector(); renderTabs(); renderTable(true); };
     </script>
 </body>
 </html>
