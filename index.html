@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V6.2 - Bolsa Horas</title>
+    <title>Registro Horas V6.3 - Saldo No Negativo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -24,8 +24,6 @@
         .tipo-tag { font-size: 7px; font-weight: 900; color: #007aff; display: block; margin-top: -1px; }
         .has-note::after { content: ''; position: absolute; top: 4px; left: 4px; width: 4px; height: 4px; background: #ff9500; border-radius: 50%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        /* Nueva clase para jornada especial */
         .jornada-especial { color: #ff3b30 !important; }
     </style>
 </head>
@@ -91,6 +89,7 @@
 
             <div class="ios-card p-4 mb-4 border-2 border-blue-100 bg-blue-50/20">
                 <h2 class="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-3">Bolsa de Horas Histórica</h2>
+                <p class="text-[8px] text-gray-400 mb-2 italic">* Los periodos con saldo negativo no restan del total.</p>
                 <div class="grid grid-cols-3 gap-2 text-center mb-3">
                     <div>
                         <p class="text-[7px] text-gray-400 font-bold uppercase">Total Extras</p>
@@ -225,7 +224,6 @@
                 if(key === todayStr) { row.className = "today-row"; row.id = "scroll-target"; }
                 if(iter.getDay() === 0 || iter.getDay() === 6) row.classList.add("weekend");
 
-                // LOGICA: Rojo si es Jornada Especial (9h 15m = 9.25)
                 const isSpecial = worked >= 9.25;
 
                 row.innerHTML = `
@@ -263,38 +261,54 @@
             }
         }
 
-        // CALCULO BOLSA HISTÓRICA
+        // NUEVA LÓGICA: LOS PERIODOS NEGATIVOS SUMAN 0 A LA BOLSA
         function updateBagStats() {
-            let historicalExtras = 0;
-            // Recorremos todo el JSON de datos
-            Object.keys(data).forEach(key => {
-                const day = data[key];
-                const ent1 = day.i1 || day.in;
-                const sal1 = day.o1 || day.out;
-                let worked = 0;
-                if(ent1 && sal1) {
-                    let w1 = tToD(sal1) - tToD(ent1); if(w1 < 0) w1 += 24;
-                    worked += w1;
-                }
-                if(day.t === 'P' && day.i2 && day.o2) {
-                    let w2 = tToD(day.o2) - tToD(day.i2); if(w2 < 0) w2 += 24;
-                    worked += w2;
-                }
-                if(worked > 0) {
-                    const obj = tToD(day.obj || '07:36');
-                    historicalExtras += (worked - obj);
-                }
+            let totalHistoricalExtras = 0;
+            
+            // Recorremos los años configurados (solo 2026 por ahora)
+            Object.keys(CONFIG_PERIODOS).forEach(year => {
+                CONFIG_PERIODOS[year].forEach(period => {
+                    let periodBalance = 0;
+                    let iter = new Date(period.start);
+                    let end = new Date(period.end);
+                    
+                    while(iter <= end) {
+                        const key = `${iter.getFullYear()}-${iter.getMonth() + 1}-${iter.getDate()}`;
+                        const day = data[key];
+                        if(day) {
+                            const ent1 = day.i1 || day.in;
+                            const sal1 = day.o1 || day.out;
+                            let worked = 0;
+                            if(ent1 && sal1) {
+                                let w1 = tToD(sal1) - tToD(ent1); if(w1 < 0) w1 += 24;
+                                worked += w1;
+                            }
+                            if(day.t === 'P' && day.i2 && day.o2) {
+                                let w2 = tToD(day.o2) - tToD(day.i2); if(w2 < 0) w2 += 24;
+                                worked += w2;
+                            }
+                            if(worked > 0) {
+                                const obj = tToD(day.obj || '07:36');
+                                periodBalance += (worked - obj);
+                            }
+                        }
+                        iter.setDate(iter.getDate() + 1);
+                    }
+                    // REGLA: Si el saldo del periodo es negativo, sumamos 0.
+                    if(periodBalance > 0) {
+                        totalHistoricalExtras += periodBalance;
+                    }
+                });
             });
 
-            const netBalance = historicalExtras - manualSubtraction;
-            const daysEq = netBalance / 7.6; // Basado en 07:36 (7.6h)
+            const netBalance = totalHistoricalExtras - manualSubtraction;
+            const daysEq = netBalance / 7.6; 
 
-            document.getElementById('bag-total-extras').innerText = dToC(historicalExtras);
+            document.getElementById('bag-total-extras').innerText = dToC(totalHistoricalExtras);
             document.getElementById('bag-subtracted').innerText = dToC(manualSubtraction);
             document.getElementById('bag-balance').innerText = dToC(netBalance);
             document.getElementById('bag-days-eq').innerText = `${daysEq.toFixed(2)} días aprox.`;
             
-            // Colores dinámicos del saldo
             document.getElementById('bag-balance').className = `text-xs font-black ${netBalance >= 0 ? 'text-green-700' : 'text-red-600'}`;
         }
 
