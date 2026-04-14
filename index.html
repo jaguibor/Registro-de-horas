@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V5.2</title>
+    <title>Registro Horas V6.2 - Bolsa Horas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -24,6 +24,9 @@
         .tipo-tag { font-size: 7px; font-weight: 900; color: #007aff; display: block; margin-top: -1px; }
         .has-note::after { content: ''; position: absolute; top: 4px; left: 4px; width: 4px; height: 4px; background: #ff9500; border-radius: 50%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Nueva clase para jornada especial */
+        .jornada-especial { color: #ff3b30 !important; }
     </style>
 </head>
 <body class="pb-20">
@@ -86,6 +89,28 @@
                 </table>
             </div>
 
+            <div class="ios-card p-4 mb-4 border-2 border-blue-100 bg-blue-50/20">
+                <h2 class="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-3">Bolsa de Horas Histórica</h2>
+                <div class="grid grid-cols-3 gap-2 text-center mb-3">
+                    <div>
+                        <p class="text-[7px] text-gray-400 font-bold uppercase">Total Extras</p>
+                        <p id="bag-total-extras" class="text-xs font-bold">0:00</p>
+                    </div>
+                    <div>
+                        <p class="text-[7px] text-red-400 font-bold uppercase">Restado</p>
+                        <p id="bag-subtracted" class="text-xs font-bold text-red-500 cursor-pointer" onclick="editManualSubtraction()">0:00</p>
+                    </div>
+                    <div>
+                        <p class="text-[7px] text-green-600 font-bold uppercase">Saldo Neto</p>
+                        <p id="bag-balance" class="text-xs font-black text-green-700">0:00</p>
+                    </div>
+                </div>
+                <div class="bg-white/60 rounded-lg p-2 text-center border border-blue-50">
+                    <p class="text-[8px] font-bold text-gray-500 uppercase">Equivale aproximadamente a:</p>
+                    <p id="bag-days-eq" class="text-sm font-black text-blue-800">0 días libres</p>
+                </div>
+            </div>
+
             <div class="flex flex-col gap-2 mb-10">
                 <button onclick="exportToCSV()" class="w-full bg-white border border-gray-200 p-4 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm">Exportar a Excel</button>
                 <div class="flex gap-2">
@@ -99,13 +124,30 @@
     <input type="file" id="file-input" class="hidden" accept=".json">
 
     <script>
+        const CONFIG_PERIODOS = {
+            2026: [
+                { start: "2026-01-01", end: "2026-01-25" },
+                { start: "2026-01-26", end: "2026-02-22" },
+                { start: "2026-02-23", end: "2026-03-29" },
+                { start: "2026-03-30", end: "2026-04-26" },
+                { start: "2026-04-27", end: "2026-05-24" },
+                { start: "2026-05-25", end: "2026-06-21" },
+                { start: "2026-06-22", end: "2026-07-26" },
+                { start: "2026-07-27", end: "2026-08-23" },
+                { start: "2026-08-24", end: "2026-09-27" },
+                { start: "2026-09-28", end: "2026-10-25" },
+                { start: "2026-10-26", end: "2026-11-22" },
+                { start: "2026-11-23", end: "2026-12-27" }
+            ]
+        };
+
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
         
-        let currentYear = Math.max(2026, new Date().getFullYear());
+        let currentYear = 2026;
         let currentMonthIdx = new Date().getMonth();
-        // IMPORTANTE: Mantenemos 'horas_multiy_v1' para no perder nada de tu app actual
         let data = JSON.parse(localStorage.getItem('horas_multiy_v1')) || {};
+        let manualSubtraction = parseFloat(localStorage.getItem('horas_manual_sub')) || 0;
         let activeKey = null;
 
         function tToD(t) {
@@ -139,16 +181,28 @@
 
         function renderTable(shouldScroll = false) {
             const body = document.getElementById('table-body'); body.innerHTML = "";
-            const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
-            const todayKey = `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`;
+            let startDate, endDate;
+
+            if (CONFIG_PERIODOS[currentYear] && CONFIG_PERIODOS[currentYear][currentMonthIdx]) {
+                startDate = new Date(CONFIG_PERIODOS[currentYear][currentMonthIdx].start);
+                endDate = new Date(CONFIG_PERIODOS[currentYear][currentMonthIdx].end);
+            } else {
+                startDate = new Date(currentYear, currentMonthIdx, 1);
+                endDate = new Date(currentYear, currentMonthIdx + 1, 0);
+            }
+
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
             
             let mExtraRaw = 0, mNocBonus = 0, mDays = 0;
 
-            for(let d = 1; d <= daysInMonth; d++) {
-                const date = new Date(currentYear, currentMonthIdx, d);
-                const key = `${currentYear}-${currentMonthIdx + 1}-${d}`;
+            let iter = new Date(startDate);
+            while (iter <= endDate) {
+                const d = iter.getDate();
+                const m = iter.getMonth() + 1;
+                const y = iter.getFullYear();
+                const key = `${y}-${m}-${d}`;
                 
-                // COMPATIBILIDAD: Si dD.in existe (formato viejo), lo usamos como i1
                 const dD = data[key] || { t: 'C', i1:'', o1:'', i2:'', o2:'', obj:'07:36', note:'' };
                 const entrada1 = dD.i1 || dD.in || ''; 
                 const salida1 = dD.o1 || dD.out || '';
@@ -168,13 +222,16 @@
                 if(worked > 0) { mDays++; mExtraRaw += diff; mNocBonus += bonusNoc; }
 
                 const row = document.createElement('tr');
-                if(key === todayKey) { row.className = "today-row"; row.id = "scroll-target"; }
-                if(date.getDay() === 0 || date.getDay() === 6) row.classList.add("weekend");
+                if(key === todayStr) { row.className = "today-row"; row.id = "scroll-target"; }
+                if(iter.getDay() === 0 || iter.getDay() === 6) row.classList.add("weekend");
+
+                // LOGICA: Rojo si es Jornada Especial (9h 15m = 9.25)
+                const isSpecial = worked >= 9.25;
 
                 row.innerHTML = `
-                    <td class="col-dia ${dD.note ? 'has-note' : ''}" onclick="openModal('${key}', ${d})">
-                        <div class="text-[6px] font-bold text-gray-400 uppercase">${daysShort[date.getDay()]}</div>
-                        <div class="text-[12px] font-bold">${d}</div>
+                    <td class="col-dia ${dD.note ? 'has-note' : ''}" onclick="openModal('${key}', ${d}, ${m-1})">
+                        <div class="text-[6px] font-bold text-gray-400 uppercase">${daysShort[iter.getDay()]} ${m}/${y}</div>
+                        <div class="${isSpecial ? 'jornada-especial' : ''} text-[12px] font-bold">${d}</div>
                         <span class="tipo-tag">(${dD.t || 'C'})</span>
                     </td>
                     <td class="col-data">
@@ -190,6 +247,7 @@
                     <td class="col-extra font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff>=0?'+':'')+dToC(diff) : ''}</td>
                 `;
                 body.appendChild(row);
+                iter.setDate(iter.getDate() + 1);
             }
             
             document.getElementById('stat-days').innerText = mDays;
@@ -198,25 +256,69 @@
             document.getElementById('stat-noc').innerText = dToC(mNocBonus);
             document.getElementById('stat-total').innerText = dToC((mExtraRaw * 1.5) + mNocBonus);
 
-            if(shouldScroll && currentMonthIdx === new Date().getMonth()) {
+            updateBagStats();
+
+            if(shouldScroll) {
                 setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+            }
+        }
+
+        // CALCULO BOLSA HISTÓRICA
+        function updateBagStats() {
+            let historicalExtras = 0;
+            // Recorremos todo el JSON de datos
+            Object.keys(data).forEach(key => {
+                const day = data[key];
+                const ent1 = day.i1 || day.in;
+                const sal1 = day.o1 || day.out;
+                let worked = 0;
+                if(ent1 && sal1) {
+                    let w1 = tToD(sal1) - tToD(ent1); if(w1 < 0) w1 += 24;
+                    worked += w1;
+                }
+                if(day.t === 'P' && day.i2 && day.o2) {
+                    let w2 = tToD(day.o2) - tToD(day.i2); if(w2 < 0) w2 += 24;
+                    worked += w2;
+                }
+                if(worked > 0) {
+                    const obj = tToD(day.obj || '07:36');
+                    historicalExtras += (worked - obj);
+                }
+            });
+
+            const netBalance = historicalExtras - manualSubtraction;
+            const daysEq = netBalance / 7.6; // Basado en 07:36 (7.6h)
+
+            document.getElementById('bag-total-extras').innerText = dToC(historicalExtras);
+            document.getElementById('bag-subtracted').innerText = dToC(manualSubtraction);
+            document.getElementById('bag-balance').innerText = dToC(netBalance);
+            document.getElementById('bag-days-eq').innerText = `${daysEq.toFixed(2)} días aprox.`;
+            
+            // Colores dinámicos del saldo
+            document.getElementById('bag-balance').className = `text-xs font-black ${netBalance >= 0 ? 'text-green-700' : 'text-red-600'}`;
+        }
+
+        function editManualSubtraction() {
+            const val = prompt("Horas a restar de la bolsa (HH:MM o decimal):", dToC(manualSubtraction));
+            if (val !== null) {
+                manualSubtraction = tToD(val);
+                localStorage.setItem('horas_manual_sub', manualSubtraction);
+                updateBagStats();
             }
         }
 
         function upd(k, f, v) {
             if(!data[k]) data[k] = { t: 'C', i1:'', o1:'', i2:'', o2:'', obj:'07:36', note:'' };
-            // Si estamos actualizando i1 u o1, borramos los campos viejos in/out para limpiar el JSON
             if(f === 'i1') delete data[k].in;
             if(f === 'o1') delete data[k].out;
-            
             data[k][f] = v;
             localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
             renderTable(false);
         }
 
-        function openModal(k, d) { 
+        function openModal(k, d, mIdx) { 
             activeKey = k; 
-            document.getElementById('modal-date').innerText = d + " de " + months[currentMonthIdx]; 
+            document.getElementById('modal-date').innerText = d + " de " + months[mIdx]; 
             document.getElementById('modal-tipo').value = data[k]?.t || 'C';
             document.getElementById('modal-text').value = data[k]?.note || ""; 
             document.getElementById('modal-overlay').style.display = 'flex'; 
@@ -234,14 +336,16 @@
         function setGlobalObjective() {
             const n = prompt("Objetivo Anual (HH:MM):", "07:36");
             if (n) {
-                for(let m=1; m<=12; m++) {
-                    let dM = new Date(currentYear, m, 0).getDate();
-                    for(let d=1; d<=dM; d++) {
-                        let k = `${currentYear}-${m}-${d}`;
+                CONFIG_PERIODOS[currentYear].forEach(p => {
+                    let iter = new Date(p.start);
+                    let end = new Date(p.end);
+                    while(iter <= end) {
+                        let k = `${iter.getFullYear()}-${iter.getMonth()+1}-${iter.getDate()}`;
                         if(!data[k]) data[k] = { t:'C', i1:'', o1:'', obj:n };
                         else data[k].obj = n;
+                        iter.setDate(iter.getDate()+1);
                     }
-                }
+                });
                 localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
                 renderTable();
             }
@@ -284,11 +388,11 @@
 
         window.onload = () => { 
             const sel = document.getElementById('year-selector');
-            for(let y=2026; y<=2030; y++) {
+            [2026, 2027, 2028].forEach(y => {
                 const opt = document.createElement('option'); opt.value = y; opt.innerText = y;
                 if(y === currentYear) opt.selected = true;
                 sel.appendChild(opt);
-            }
+            });
             renderTabs(); renderTable(true); 
         };
     </script>
