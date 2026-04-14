@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V6.3 - Saldo No Negativo</title>
+    <title>Registro Horas V6.4 - Bolsa Corregida</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -16,9 +16,7 @@
         th { background: #fbfbfd; color: #8e8e93; font-size: 7px; text-transform: uppercase; padding: 8px 0; text-align: center; font-weight: 700; border-bottom: 0.5px solid #e5e5ea; }
         td { border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; position: relative; padding: 5px 0; }
         input { width: 100%; border: none; background: transparent; text-align: center; font-size: 13px; outline: none; font-variant-numeric: tabular-nums; }
-        
         .col-dia { width: 12%; } .col-data { width: 17%; } .col-total { width: 15%; } .col-obj { width: 16%; } .col-extra { width: 15%; }
-        
         .weekend { background-color: #f9f9fb; }
         .today-row { background-color: #fff9c4 !important; }
         .tipo-tag { font-size: 7px; font-weight: 900; color: #007aff; display: block; margin-top: -1px; }
@@ -87,12 +85,11 @@
                 </table>
             </div>
 
-            <div class="ios-card p-4 mb-4 border-2 border-blue-100 bg-blue-50/20">
-                <h2 class="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-3">Bolsa de Horas Histórica</h2>
-                <p class="text-[8px] text-gray-400 mb-2 italic">* Los periodos con saldo negativo no restan del total.</p>
+            <div class="ios-card p-4 mb-4 border-2 border-indigo-100 bg-indigo-50/20">
+                <h2 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-3">Bolsa Acumulada (Suma Totales)</h2>
                 <div class="grid grid-cols-3 gap-2 text-center mb-3">
                     <div>
-                        <p class="text-[7px] text-gray-400 font-bold uppercase">Total Extras</p>
+                        <p class="text-[7px] text-gray-400 font-bold uppercase">Suma de Totales</p>
                         <p id="bag-total-extras" class="text-xs font-bold">0:00</p>
                     </div>
                     <div>
@@ -100,13 +97,13 @@
                         <p id="bag-subtracted" class="text-xs font-bold text-red-500 cursor-pointer" onclick="editManualSubtraction()">0:00</p>
                     </div>
                     <div>
-                        <p class="text-[7px] text-green-600 font-bold uppercase">Saldo Neto</p>
-                        <p id="bag-balance" class="text-xs font-black text-green-700">0:00</p>
+                        <p class="text-[7px] text-indigo-600 font-bold uppercase">Saldo Neto</p>
+                        <p id="bag-balance" class="text-xs font-black text-indigo-700">0:00</p>
                     </div>
                 </div>
-                <div class="bg-white/60 rounded-lg p-2 text-center border border-blue-50">
+                <div class="bg-white/60 rounded-lg p-2 text-center border border-indigo-50">
                     <p class="text-[8px] font-bold text-gray-500 uppercase">Equivale aproximadamente a:</p>
-                    <p id="bag-days-eq" class="text-sm font-black text-blue-800">0 días libres</p>
+                    <p id="bag-days-eq" class="text-sm font-black text-indigo-800">0 días libres</p>
                 </div>
             </div>
 
@@ -261,14 +258,14 @@
             }
         }
 
-        // NUEVA LÓGICA: LOS PERIODOS NEGATIVOS SUMAN 0 A LA BOLSA
+        // LÓGICA CORREGIDA: SUMA EL TOTAL PONDERADO DE CADA PERIODO
         function updateBagStats() {
-            let totalHistoricalExtras = 0;
+            let totalWeightedAccumulated = 0;
             
-            // Recorremos los años configurados (solo 2026 por ahora)
             Object.keys(CONFIG_PERIODOS).forEach(year => {
                 CONFIG_PERIODOS[year].forEach(period => {
-                    let periodBalance = 0;
+                    let periodExtraRaw = 0;
+                    let periodNocBonus = 0;
                     let iter = new Date(period.start);
                     let end = new Date(period.end);
                     
@@ -279,37 +276,43 @@
                             const ent1 = day.i1 || day.in;
                             const sal1 = day.o1 || day.out;
                             let worked = 0;
+                            let noc = 0;
                             if(ent1 && sal1) {
                                 let w1 = tToD(sal1) - tToD(ent1); if(w1 < 0) w1 += 24;
                                 worked += w1;
+                                noc += calcNightBonus(ent1, sal1);
                             }
                             if(day.t === 'P' && day.i2 && day.o2) {
                                 let w2 = tToD(day.o2) - tToD(day.i2); if(w2 < 0) w2 += 24;
                                 worked += w2;
+                                noc += calcNightBonus(day.i2, day.o2);
                             }
                             if(worked > 0) {
                                 const obj = tToD(day.obj || '07:36');
-                                periodBalance += (worked - obj);
+                                periodExtraRaw += (worked - obj);
+                                periodNocBonus += noc;
                             }
                         }
                         iter.setDate(iter.getDate() + 1);
                     }
-                    // REGLA: Si el saldo del periodo es negativo, sumamos 0.
-                    if(periodBalance > 0) {
-                        totalHistoricalExtras += periodBalance;
+                    
+                    // REPLICAMOS LA "SUMA TOTAL" DEL MES: (Extras x 1.5) + Nocturnidad
+                    let periodTotalWeighted = (periodExtraRaw * 1.5) + periodNocBonus;
+
+                    // Si la suma total del periodo es positiva, se añade a la bolsa
+                    if(periodTotalWeighted > 0) {
+                        totalWeightedAccumulated += periodTotalWeighted;
                     }
                 });
             });
 
-            const netBalance = totalHistoricalExtras - manualSubtraction;
+            const netBalance = totalWeightedAccumulated - manualSubtraction;
             const daysEq = netBalance / 7.6; 
 
-            document.getElementById('bag-total-extras').innerText = dToC(totalHistoricalExtras);
+            document.getElementById('bag-total-extras').innerText = dToC(totalWeightedAccumulated);
             document.getElementById('bag-subtracted').innerText = dToC(manualSubtraction);
             document.getElementById('bag-balance').innerText = dToC(netBalance);
             document.getElementById('bag-days-eq').innerText = `${daysEq.toFixed(2)} días aprox.`;
-            
-            document.getElementById('bag-balance').className = `text-xs font-black ${netBalance >= 0 ? 'text-green-700' : 'text-red-600'}`;
         }
 
         function editManualSubtraction() {
