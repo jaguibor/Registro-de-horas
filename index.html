@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V6.4 - Bolsa Corregida</title>
+    <title>Registro Horas V6.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -27,6 +27,7 @@
 </head>
 <body class="pb-20">
 
+    <!-- Modal -->
     <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-[200] hidden items-center justify-center p-6 backdrop-blur-sm" onclick="if(event.target==this) closeModal()">
         <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl border border-gray-100 text-center">
             <h3 id="modal-date" class="text-lg font-bold mb-4 text-blue-600"></h3>
@@ -49,6 +50,7 @@
     </div>
 
     <div class="max-w-md mx-auto">
+        <!-- Header fijo -->
         <div class="header-sticky px-2">
             <div class="flex justify-between items-center pt-5 pb-1">
                 <h1 class="text-lg font-bold tracking-tight">Registro</h1>
@@ -57,9 +59,10 @@
                     <select id="year-selector" class="bg-gray-200 px-1 py-1 rounded font-bold text-xs" onchange="changeYear(this.value)"></select>
                 </div>
             </div>
-            
+
             <div id="month-tabs" class="flex overflow-x-auto gap-1 py-1 no-scrollbar mb-1"></div>
-            
+
+            <!-- Stats -->
             <div class="grid grid-cols-5 gap-1 py-1 text-center">
                 <div class="ios-card p-1.5"><p class="text-[6px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-[11px] font-bold">0</p></div>
                 <div class="ios-card p-1.5 border-l-2 border-blue-200"><p class="text-[6px] font-bold text-gray-400 uppercase">Extras</p><p id="stat-extra-raw" class="text-[11px] font-bold">0:00</p></div>
@@ -68,23 +71,36 @@
                 <div class="ios-card p-1.5 bg-[#1c1c1e] text-white"><p class="text-[6px] font-bold text-gray-400 uppercase">Suma Total</p><p id="stat-total" class="text-[11px] font-bold">0:00</p></div>
             </div>
 
+            <!-- Cabecera tabla (sticky) -->
             <div class="ios-card rounded-b-none border-b-0 shadow-none mt-2">
                 <table>
                     <thead>
-                        <tr><th class="col-dia">Día</th><th class="col-data">Entrada</th><th class="col-data">Salida</th><th class="col-total text-blue-600">Total</th><th class="col-obj">Objetivo</th><th class="col-extra">Extras</th></tr>
+                        <tr>
+                            <th class="col-dia">Día</th>
+                            <th class="col-data">Entrada</th>
+                            <th class="col-data">Salida</th>
+                            <th class="col-total text-blue-600">Total</th>
+                            <th class="col-obj">Objetivo</th>
+                            <th class="col-extra">Extras</th>
+                        </tr>
                     </thead>
                 </table>
             </div>
         </div>
 
+        <!-- Contenido -->
         <div class="px-2">
             <div class="ios-card rounded-t-none border-t-0 mb-4">
                 <table id="main-table">
-                    <colgroup><col class="col-dia"><col class="col-data"><col class="col-data"><col class="col-total"><col class="col-obj"><col class="col-extra"></colgroup>
+                    <colgroup>
+                        <col class="col-dia"><col class="col-data"><col class="col-data">
+                        <col class="col-total"><col class="col-obj"><col class="col-extra">
+                    </colgroup>
                     <tbody id="table-body" class="text-xs"></tbody>
                 </table>
             </div>
 
+            <!-- Bolsa acumulada -->
             <div class="ios-card p-4 mb-4 border-2 border-indigo-100 bg-indigo-50/20">
                 <h2 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-3">Bolsa Acumulada (Suma Totales)</h2>
                 <div class="grid grid-cols-3 gap-2 text-center mb-3">
@@ -107,6 +123,7 @@
                 </div>
             </div>
 
+            <!-- Acciones -->
             <div class="flex flex-col gap-2 mb-10">
                 <button onclick="exportToCSV()" class="w-full bg-white border border-gray-200 p-4 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm">Exportar a Excel</button>
                 <div class="flex gap-2">
@@ -120,6 +137,7 @@
     <input type="file" id="file-input" class="hidden" accept=".json">
 
     <script>
+        // ─── Configuración de periodos ───────────────────────────────────────────
         const CONFIG_PERIODOS = {
             2026: [
                 { start: "2026-01-01", end: "2026-01-25" },
@@ -137,182 +155,218 @@
             ]
         };
 
-        const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-        const daysShort = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
-        
+        const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+        const DAYS_SHORT = ["DOM","LUN","MAR","MIE","JUE","VIE","SAB"];
+        const DEFAULT_OBJ = "07:36";
+        const HOURS_PER_DAY = 7.6; // para cálculo de días equivalentes
+
         let currentYear = 2026;
         let currentMonthIdx = new Date().getMonth();
         let data = JSON.parse(localStorage.getItem('horas_multiy_v1')) || {};
         let manualSubtraction = parseFloat(localStorage.getItem('horas_manual_sub')) || 0;
         let activeKey = null;
 
+        // ─── Utilidades de tiempo ────────────────────────────────────────────────
+
+        /** Convierte un string de tiempo (HH:MM, HH.MM, decimal) a horas decimales */
         function tToD(t) {
-            if(!t) return 0;
-            let clean = t.toString().replace(',', '.').replace('.', ':').trim();
-            if(!clean.includes(':')) {
-                if(clean.length <= 2) clean += ":00";
-                else clean = clean.slice(0,-2) + ":" + clean.slice(-2);
+            if (!t) return 0;
+            let clean = t.toString().replace(',', '.').trim();
+            // Si tiene punto pero no dos dígitos antes, tratar como decimal puro
+            if (clean.includes('.') && !clean.includes(':')) {
+                // Podría ser 7.5 (decimal) o 7.30 (hora con separador)
+                const parts = clean.split('.');
+                // Si la parte decimal tiene exactamente 2 dígitos → tratar como MM
+                if (parts[1] && parts[1].length === 2) {
+                    clean = parts[0] + ':' + parts[1];
+                }
+                // Si tiene 1 dígito o más de 2 → decimal puro → devolver tal cual
+                else {
+                    return parseFloat(clean) || 0;
+                }
+            }
+            if (!clean.includes(':')) {
+                // número sin separador: asumir HHMM si >2 dígitos, HH si ≤2
+                if (clean.length <= 2) clean += ':00';
+                else clean = clean.slice(0, -2) + ':' + clean.slice(-2);
             }
             const [h, m] = clean.split(':').map(Number);
-            return (h || 0) + ((m || 0)/60);
+            return (h || 0) + ((m || 0) / 60);
         }
 
+        /** Convierte horas decimales a string "H:MM" (con signo si negativo) */
         function dToC(n) {
-            const s = n < -0.001 ? '-' : '';
-            const a = Math.abs(n);
-            const h = Math.floor(a), m = Math.round((a - h) * 60);
-            return `${s}${h}:${m.toString().padStart(2, '0')}`;
+            const sign = n < -0.001 ? '-' : '';
+            const abs = Math.abs(n);
+            const h = Math.floor(abs);
+            const m = Math.round((abs - h) * 60);
+            return `${sign}${h}:${m.toString().padStart(2, '0')}`;
         }
 
-        function calcNightBonus(s, e) {
-            if(!s || !e) return 0;
-            let start = tToD(s), end = tToD(e), nightHours = 0;
-            if(end < start) end += 24;
-            for(let h = start; h < end; h += 0.05) {
-                let hour = h % 24;
-                if(hour >= 22 || hour < 6) nightHours += 0.05;
+        /** Calcula el bonus de nocturnidad (25% de horas entre 22h y 6h) */
+        function calcNightBonus(startStr, endStr) {
+            if (!startStr || !endStr) return 0;
+            let start = tToD(startStr);
+            let end = tToD(endStr);
+            if (end < start) end += 24;
+            let nightHours = 0;
+            const STEP = 0.05;
+            for (let h = start; h < end; h += STEP) {
+                const hour = h % 24;
+                if (hour >= 22 || hour < 6) nightHours += STEP;
             }
-            return nightHours * 0.25; 
+            return nightHours * 0.25;
         }
+
+        // ─── Datos de un día ─────────────────────────────────────────────────────
+
+        /** Devuelve el registro de un día, normalizando claves legacy (in/out → i1/o1) */
+        function getDay(key) {
+            const d = data[key] || {};
+            return {
+                t:   d.t   || 'C',
+                i1:  d.i1  || d.in  || '',   // normaliza legacy "in"
+                o1:  d.o1  || d.out || '',   // normaliza legacy "out"
+                i2:  d.i2  || '',
+                o2:  d.o2  || '',
+                obj: d.obj || DEFAULT_OBJ,
+                note: d.note || ''
+            };
+        }
+
+        /** Calcula horas trabajadas y bonus nocturno para un día */
+        function calcDay(key) {
+            const d = getDay(key);
+            let worked = 0, noc = 0;
+            if (d.i1 && d.o1) {
+                let w = tToD(d.o1) - tToD(d.i1);
+                if (w < 0) w += 24;
+                worked += w;
+                noc += calcNightBonus(d.i1, d.o1);
+            }
+            if (d.t === 'P' && d.i2 && d.o2) {
+                let w = tToD(d.o2) - tToD(d.i2);
+                if (w < 0) w += 24;
+                worked += w;
+                noc += calcNightBonus(d.i2, d.o2);
+            }
+            return { worked, noc, obj: tToD(d.obj), diff: worked > 0 ? worked - tToD(d.obj) : 0 };
+        }
+
+        // ─── Periodo del mes actual ──────────────────────────────────────────────
+
+        function getPeriodDates(year, monthIdx) {
+            if (CONFIG_PERIODOS[year]?.[monthIdx]) {
+                return {
+                    start: new Date(CONFIG_PERIODOS[year][monthIdx].start),
+                    end:   new Date(CONFIG_PERIODOS[year][monthIdx].end)
+                };
+            }
+            return {
+                start: new Date(year, monthIdx, 1),
+                end:   new Date(year, monthIdx + 1, 0)
+            };
+        }
+
+        function dateKey(d) {
+            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        }
+
+        // ─── Render principal ────────────────────────────────────────────────────
 
         function renderTable(shouldScroll = false) {
-            const body = document.getElementById('table-body'); body.innerHTML = "";
-            let startDate, endDate;
+            const body = document.getElementById('table-body');
+            body.innerHTML = '';
 
-            if (CONFIG_PERIODOS[currentYear] && CONFIG_PERIODOS[currentYear][currentMonthIdx]) {
-                startDate = new Date(CONFIG_PERIODOS[currentYear][currentMonthIdx].start);
-                endDate = new Date(CONFIG_PERIODOS[currentYear][currentMonthIdx].end);
-            } else {
-                startDate = new Date(currentYear, currentMonthIdx, 1);
-                endDate = new Date(currentYear, currentMonthIdx + 1, 0);
-            }
-
+            const { start, end } = getPeriodDates(currentYear, currentMonthIdx);
             const today = new Date();
-            const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-            
-            let mExtraRaw = 0, mNocBonus = 0, mDays = 0;
+            const todayKey = dateKey(today);
 
-            let iter = new Date(startDate);
-            while (iter <= endDate) {
-                const d = iter.getDate();
-                const m = iter.getMonth() + 1;
-                const y = iter.getFullYear();
-                const key = `${y}-${m}-${d}`;
-                
-                const dD = data[key] || { t: 'C', i1:'', o1:'', i2:'', o2:'', obj:'07:36', note:'' };
-                const entrada1 = dD.i1 || dD.in || ''; 
-                const salida1 = dD.o1 || dD.out || '';
+            let mDays = 0, mExtraRaw = 0, mNocBonus = 0;
 
-                let worked = 0, bonusNoc = 0;
-                if(entrada1 && salida1) {
-                    let w1 = tToD(salida1) - tToD(entrada1); if(w1 < 0) w1 += 24;
-                    worked += w1; bonusNoc += calcNightBonus(entrada1, salida1);
-                }
-                if(dD.t === 'P' && dD.i2 && dD.o2) {
-                    let w2 = tToD(dD.o2) - tToD(dD.i2); if(w2 < 0) w2 += 24;
-                    worked += w2; bonusNoc += calcNightBonus(dD.i2, dD.o2);
-                }
+            const iter = new Date(start);
+            while (iter <= end) {
+                const key = dateKey(iter);
+                const d = getDay(key);
+                const { worked, noc, diff } = calcDay(key);
 
-                const objVal = tToD(dD.obj || '07:36');
-                const diff = worked > 0 ? worked - objVal : 0;
-                if(worked > 0) { mDays++; mExtraRaw += diff; mNocBonus += bonusNoc; }
+                if (worked > 0) { mDays++; mExtraRaw += diff; mNocBonus += noc; }
 
                 const row = document.createElement('tr');
-                if(key === todayStr) { row.className = "today-row"; row.id = "scroll-target"; }
-                if(iter.getDay() === 0 || iter.getDay() === 6) row.classList.add("weekend");
+                if (key === todayKey) { row.className = 'today-row'; row.id = 'scroll-target'; }
+                if (iter.getDay() === 0 || iter.getDay() === 6) row.classList.add('weekend');
 
                 const isSpecial = worked >= 9.25;
+                const dayNum = iter.getDate();
+                const monNum = iter.getMonth() + 1;
 
                 row.innerHTML = `
-                    <td class="col-dia ${dD.note ? 'has-note' : ''}" onclick="openModal('${key}', ${d}, ${m-1})">
-                        <div class="text-[6px] font-bold text-gray-400 uppercase">${daysShort[iter.getDay()]} ${m}/${y}</div>
-                        <div class="${isSpecial ? 'jornada-especial' : ''} text-[12px] font-bold">${d}</div>
-                        <span class="tipo-tag">(${dD.t || 'C'})</span>
+                    <td class="col-dia${d.note ? ' has-note' : ''}" onclick="openModal('${key}', ${dayNum}, ${iter.getMonth()})">
+                        <div class="text-[6px] font-bold text-gray-400 uppercase">${DAYS_SHORT[iter.getDay()]} ${monNum}/${iter.getFullYear()}</div>
+                        <div class="${isSpecial ? 'jornada-especial' : ''} text-[12px] font-bold">${dayNum}</div>
+                        <span class="tipo-tag">(${d.t})</span>
                     </td>
                     <td class="col-data">
-                        <input type="text" value="${entrada1}" onblur="upd('${key}','i1',this.value)" placeholder="--:--">
-                        ${dD.t === 'P' ? `<input type="text" value="${dD.i2||''}" onblur="upd('${key}','i2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
+                        <input type="text" value="${d.i1}" onblur="upd('${key}','i1',this.value)" placeholder="--:--">
+                        ${d.t === 'P' ? `<input type="text" value="${d.i2}" onblur="upd('${key}','i2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
                     </td>
                     <td class="col-data">
-                        <input type="text" value="${salida1}" onblur="upd('${key}','o1',this.value)" placeholder="--:--">
-                        ${dD.t === 'P' ? `<input type="text" value="${dD.o2||''}" onblur="upd('${key}','o2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
+                        <input type="text" value="${d.o1}" onblur="upd('${key}','o1',this.value)" placeholder="--:--">
+                        ${d.t === 'P' ? `<input type="text" value="${d.o2}" onblur="upd('${key}','o2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
                     </td>
                     <td class="col-total font-semibold text-blue-600">${worked > 0 ? dToC(worked) : '-'}</td>
-                    <td class="col-obj"><input type="text" value="${dD.obj||'07:36'}" onblur="upd('${key}','obj',this.value)"></td>
-                    <td class="col-extra font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff>=0?'+':'')+dToC(diff) : ''}</td>
+                    <td class="col-obj"><input type="text" value="${d.obj}" onblur="upd('${key}','obj',this.value)"></td>
+                    <td class="col-extra font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff >= 0 ? '+' : '') + dToC(diff) : ''}</td>
                 `;
                 body.appendChild(row);
                 iter.setDate(iter.getDate() + 1);
             }
-            
-            document.getElementById('stat-days').innerText = mDays;
+
+            document.getElementById('stat-days').innerText      = mDays;
             document.getElementById('stat-extra-raw').innerText = dToC(mExtraRaw);
-            document.getElementById('stat-conv').innerText = dToC(mExtraRaw * 1.5);
-            document.getElementById('stat-noc').innerText = dToC(mNocBonus);
-            document.getElementById('stat-total').innerText = dToC((mExtraRaw * 1.5) + mNocBonus);
+            document.getElementById('stat-conv').innerText      = dToC(mExtraRaw * 1.5);
+            document.getElementById('stat-noc').innerText       = dToC(mNocBonus);
+            document.getElementById('stat-total').innerText     = dToC(mExtraRaw * 1.5 + mNocBonus);
 
             updateBagStats();
 
-            if(shouldScroll) {
+            if (shouldScroll) {
                 setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
             }
         }
 
-        // LÓGICA CORREGIDA: SUMA EL TOTAL PONDERADO DE CADA PERIODO
+        // ─── Bolsa acumulada ─────────────────────────────────────────────────────
+
         function updateBagStats() {
-            let totalWeightedAccumulated = 0;
-            
+            let totalWeighted = 0;
+
             Object.keys(CONFIG_PERIODOS).forEach(year => {
                 CONFIG_PERIODOS[year].forEach(period => {
-                    let periodExtraRaw = 0;
-                    let periodNocBonus = 0;
-                    let iter = new Date(period.start);
-                    let end = new Date(period.end);
-                    
-                    while(iter <= end) {
-                        const key = `${iter.getFullYear()}-${iter.getMonth() + 1}-${iter.getDate()}`;
-                        const day = data[key];
-                        if(day) {
-                            const ent1 = day.i1 || day.in;
-                            const sal1 = day.o1 || day.out;
-                            let worked = 0;
-                            let noc = 0;
-                            if(ent1 && sal1) {
-                                let w1 = tToD(sal1) - tToD(ent1); if(w1 < 0) w1 += 24;
-                                worked += w1;
-                                noc += calcNightBonus(ent1, sal1);
-                            }
-                            if(day.t === 'P' && day.i2 && day.o2) {
-                                let w2 = tToD(day.o2) - tToD(day.i2); if(w2 < 0) w2 += 24;
-                                worked += w2;
-                                noc += calcNightBonus(day.i2, day.o2);
-                            }
-                            if(worked > 0) {
-                                const obj = tToD(day.obj || '07:36');
-                                periodExtraRaw += (worked - obj);
-                                periodNocBonus += noc;
-                            }
+                    let periodExtraRaw = 0, periodNoc = 0;
+                    const iter = new Date(period.start);
+                    const end  = new Date(period.end);
+
+                    while (iter <= end) {
+                        const key = dateKey(iter);
+                        if (data[key]) {
+                            const { worked, noc, diff } = calcDay(key);
+                            if (worked > 0) { periodExtraRaw += diff; periodNoc += noc; }
                         }
                         iter.setDate(iter.getDate() + 1);
                     }
-                    
-                    // REPLICAMOS LA "SUMA TOTAL" DEL MES: (Extras x 1.5) + Nocturnidad
-                    let periodTotalWeighted = (periodExtraRaw * 1.5) + periodNocBonus;
 
-                    // Si la suma total del periodo es positiva, se añade a la bolsa
-                    if(periodTotalWeighted > 0) {
-                        totalWeightedAccumulated += periodTotalWeighted;
-                    }
+                    const periodTotal = periodExtraRaw * 1.5 + periodNoc;
+                    if (periodTotal > 0) totalWeighted += periodTotal;
                 });
             });
 
-            const netBalance = totalWeightedAccumulated - manualSubtraction;
-            const daysEq = netBalance / 7.6; 
+            const netBalance = totalWeighted - manualSubtraction;
+            const daysEq = netBalance / HOURS_PER_DAY;
 
-            document.getElementById('bag-total-extras').innerText = dToC(totalWeightedAccumulated);
-            document.getElementById('bag-subtracted').innerText = dToC(manualSubtraction);
-            document.getElementById('bag-balance').innerText = dToC(netBalance);
-            document.getElementById('bag-days-eq').innerText = `${daysEq.toFixed(2)} días aprox.`;
+            document.getElementById('bag-total-extras').innerText = dToC(totalWeighted);
+            document.getElementById('bag-subtracted').innerText   = dToC(manualSubtraction);
+            document.getElementById('bag-balance').innerText      = dToC(netBalance);
+            document.getElementById('bag-days-eq').innerText      = `${daysEq.toFixed(2)} días aprox.`;
         }
 
         function editManualSubtraction() {
@@ -324,93 +378,121 @@
             }
         }
 
-        function upd(k, f, v) {
-            if(!data[k]) data[k] = { t: 'C', i1:'', o1:'', i2:'', o2:'', obj:'07:36', note:'' };
-            if(f === 'i1') delete data[k].in;
-            if(f === 'o1') delete data[k].out;
-            data[k][f] = v;
+        // ─── Actualización de datos ──────────────────────────────────────────────
+
+        function upd(key, field, value) {
+            if (!data[key]) data[key] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: DEFAULT_OBJ, note: '' };
+            // Elimina claves legacy si las hay al actualizar campos normalizados
+            if (field === 'i1') delete data[key].in;
+            if (field === 'o1') delete data[key].out;
+            data[key][field] = value;
             localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
             renderTable(false);
         }
 
-        function openModal(k, d, mIdx) { 
-            activeKey = k; 
-            document.getElementById('modal-date').innerText = d + " de " + months[mIdx]; 
-            document.getElementById('modal-tipo').value = data[k]?.t || 'C';
-            document.getElementById('modal-text').value = data[k]?.note || ""; 
-            document.getElementById('modal-overlay').style.display = 'flex'; 
+        // ─── Modal ───────────────────────────────────────────────────────────────
+
+        function openModal(key, dayNum, monthIdx) {
+            activeKey = key;
+            document.getElementById('modal-date').innerText  = `${dayNum} de ${MONTHS[monthIdx]}`;
+            document.getElementById('modal-tipo').value      = data[key]?.t || 'C';
+            document.getElementById('modal-text').value      = data[key]?.note || '';
+            document.getElementById('modal-overlay').style.display = 'flex';
         }
-        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
         function saveModalData() {
-            if(!data[activeKey]) data[activeKey] = { t: 'C', i1:'', o1:'', i2:'', o2:'', obj:'07:36', note:'' };
-            data[activeKey].t = document.getElementById('modal-tipo').value;
+            if (!data[activeKey]) data[activeKey] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: DEFAULT_OBJ, note: '' };
+            data[activeKey].t    = document.getElementById('modal-tipo').value;
             data[activeKey].note = document.getElementById('modal-text').value;
             localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
             closeModal();
             renderTable();
         }
 
+        // ─── Objetivo anual ──────────────────────────────────────────────────────
+
         function setGlobalObjective() {
-            const n = prompt("Objetivo Anual (HH:MM):", "07:36");
-            if (n) {
-                CONFIG_PERIODOS[currentYear].forEach(p => {
-                    let iter = new Date(p.start);
-                    let end = new Date(p.end);
-                    while(iter <= end) {
-                        let k = `${iter.getFullYear()}-${iter.getMonth()+1}-${iter.getDate()}`;
-                        if(!data[k]) data[k] = { t:'C', i1:'', o1:'', obj:n };
-                        else data[k].obj = n;
-                        iter.setDate(iter.getDate()+1);
-                    }
-                });
-                localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
-                renderTable();
-            }
+            const newObj = prompt("Objetivo Anual (HH:MM):", DEFAULT_OBJ);
+            if (!newObj) return;
+            CONFIG_PERIODOS[currentYear].forEach(p => {
+                const iter = new Date(p.start);
+                const end  = new Date(p.end);
+                while (iter <= end) {
+                    const k = dateKey(iter);
+                    if (!data[k]) data[k] = { t: 'C', i1: '', o1: '', obj: newObj };
+                    else data[k].obj = newObj;
+                    iter.setDate(iter.getDate() + 1);
+                }
+            });
+            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
+            renderTable();
         }
+
+        // ─── Navegación ──────────────────────────────────────────────────────────
 
         function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(true); }
-        function changeYear(y) { currentYear = parseInt(y); renderTable(true); }
+        function changeYear(y)  { currentYear = parseInt(y); renderTable(true); }
+
         function renderTabs() {
-            document.getElementById('month-tabs').innerHTML = months.map((m, i) => `<button onclick="changeMonth(${i})" class="flex-none px-3 py-2 rounded-full text-[10px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">${m.toUpperCase()}</button>`).join('');
+            document.getElementById('month-tabs').innerHTML = MONTHS.map((m, i) =>
+                `<button onclick="changeMonth(${i})" class="flex-none px-3 py-2 rounded-full text-[10px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">${m.toUpperCase()}</button>`
+            ).join('');
         }
 
+        // ─── Importar / Exportar ─────────────────────────────────────────────────
+
         function downloadJSON() {
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type: 'application/json'})); a.download = "backup_horas.json"; a.click();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+            a.download = 'backup_horas.json';
+            a.click();
         }
 
         document.getElementById('file-input').onchange = (e) => {
             const reader = new FileReader();
             reader.onload = (ev) => {
-                data = JSON.parse(ev.target.result);
-                localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
-                renderTable(true);
+                try {
+                    data = JSON.parse(ev.target.result);
+                    localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
+                    renderTable(true);
+                } catch {
+                    alert('El archivo no es un JSON válido.');
+                }
             };
             reader.readAsText(e.target.files[0]);
         };
 
         function exportToCSV() {
             let csv = "\uFEFFFecha;Entrada;Salida;Real;Objetivo;Diferencia;Nota\n";
-            Object.keys(data).sort().forEach(k => {
-                const d = data[k];
-                const ent = d.i1 || d.in || '';
-                const sal = d.o1 || d.out || '';
-                if(ent) {
-                    let w = tToD(sal) - tToD(ent); if(w < 0) w += 24;
-                    csv += `${k};${ent};${sal};${dToC(w)};${d.obj};${dToC(w-tToD(d.obj))};"${d.note||''}"\n`;
-                }
+            Object.keys(data).sort().forEach(key => {
+                const d = getDay(key);
+                if (!d.i1) return;
+                let w = tToD(d.o1) - tToD(d.i1);
+                if (w < 0) w += 24;
+                csv += `${key};${d.i1};${d.o1};${dToC(w)};${d.obj};${dToC(w - tToD(d.obj))};"${d.note}"\n`;
             });
-            const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            a.download = `registro_${currentYear}.csv`; a.click();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            a.download = `registro_${currentYear}.csv`;
+            a.click();
         }
 
-        window.onload = () => { 
+        // ─── Inicialización ──────────────────────────────────────────────────────
+
+        window.onload = () => {
             const sel = document.getElementById('year-selector');
             [2026, 2027, 2028].forEach(y => {
-                const opt = document.createElement('option'); opt.value = y; opt.innerText = y;
-                if(y === currentYear) opt.selected = true;
+                const opt = document.createElement('option');
+                opt.value = y; opt.innerText = y;
+                if (y === currentYear) opt.selected = true;
                 sel.appendChild(opt);
             });
-            renderTabs(); renderTable(true); 
+            renderTabs();
+            renderTable(true);
         };
     </script>
 </body>
