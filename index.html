@@ -102,21 +102,46 @@
 
             <!-- Bolsa acumulada -->
             <div class="ios-card p-4 mb-4 border-2 border-indigo-100 bg-indigo-50/20">
-                <h2 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-3">Bolsa Acumulada (Suma Totales)</h2>
-                <div class="grid grid-cols-3 gap-2 text-center mb-3">
-                    <div>
-                        <p class="text-[7px] text-gray-400 font-bold uppercase">Suma de Totales</p>
-                        <p id="bag-total-extras" class="text-xs font-bold">0:00</p>
-                    </div>
-                    <div>
-                        <p class="text-[7px] text-red-400 font-bold uppercase">Restado</p>
-                        <p id="bag-subtracted" class="text-xs font-bold text-red-500 cursor-pointer" onclick="editManualSubtraction()">0:00</p>
-                    </div>
-                    <div>
-                        <p class="text-[7px] text-indigo-600 font-bold uppercase">Saldo Neto</p>
-                        <p id="bag-balance" class="text-xs font-black text-indigo-700">0:00</p>
+                <h2 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-3">Bolsa Acumulada</h2>
+
+                <!-- Fila Librar -->
+                <div class="mb-2">
+                    <p class="text-[8px] font-black uppercase text-emerald-600 mb-1 tracking-wider">Librar</p>
+                    <div class="grid grid-cols-4 gap-1 text-center">
+                        <div class="bg-white/70 rounded-lg p-1.5 border border-gray-100">
+                            <p class="text-[6px] text-gray-400 font-bold uppercase">Suma total</p>
+                            <p id="bag-suma-total" class="text-xs font-bold">0:00</p>
+                        </div>
+                        <div class="bg-white/70 rounded-lg p-1.5 border border-red-100">
+                            <p class="text-[6px] text-red-400 font-bold uppercase">Restado</p>
+                            <p id="bag-subtracted" class="text-xs font-bold text-red-500 cursor-pointer" onclick="editManualSubtraction()">0:00</p>
+                        </div>
+                        <div class="bg-white/70 rounded-lg p-1.5 border border-indigo-100">
+                            <p class="text-[6px] text-indigo-500 font-bold uppercase">Saldo neto</p>
+                            <p id="bag-balance" class="text-xs font-black text-indigo-700">0:00</p>
+                        </div>
+                        <div class="bg-indigo-50 rounded-lg p-1.5 border border-indigo-200">
+                            <p class="text-[6px] text-indigo-600 font-bold uppercase">Saldo+noct</p>
+                            <p id="bag-balance-noc" class="text-xs font-black text-indigo-800">0:00</p>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Fila Cobrar -->
+                <div class="mb-3">
+                    <p class="text-[8px] font-black uppercase text-orange-500 mb-1 tracking-wider">Cobrar</p>
+                    <div class="grid grid-cols-2 gap-1 text-center">
+                        <div class="bg-orange-50 rounded-lg p-1.5 border border-orange-200 cursor-pointer" onclick="editHorasCobrar()">
+                            <p class="text-[6px] text-orange-500 font-bold uppercase">Horas a cobrar</p>
+                            <p id="bag-cobrar" class="text-xs font-bold text-orange-600">0:00</p>
+                        </div>
+                        <div class="bg-white/70 rounded-lg p-1.5 border border-gray-100">
+                            <p class="text-[6px] text-gray-400 font-bold uppercase">Resto disponible</p>
+                            <p id="bag-cobrar-resto" class="text-xs font-bold">0:00</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-white/60 rounded-lg p-2 text-center border border-indigo-50">
                     <p class="text-[8px] font-bold text-gray-500 uppercase">Equivale aproximadamente a:</p>
                     <p id="bag-days-eq" class="text-sm font-black text-indigo-800">0 días libres</p>
@@ -164,6 +189,7 @@
         let currentMonthIdx = new Date().getMonth();
         let data = JSON.parse(localStorage.getItem('horas_multiy_v1')) || {};
         let manualSubtraction = parseFloat(localStorage.getItem('horas_manual_sub')) || 0;
+        let horasCobrar = parseFloat(localStorage.getItem('horas_cobrar')) || 0;
         let activeKey = null;
 
         // ─── Utilidades de tiempo ────────────────────────────────────────────────
@@ -338,35 +364,42 @@
         // ─── Bolsa acumulada ─────────────────────────────────────────────────────
 
         function updateBagStats() {
-            let totalWeighted = 0;
+            let totalExtrasRaw = 0;
+            let totalNoc = 0;
 
             Object.keys(CONFIG_PERIODOS).forEach(year => {
                 CONFIG_PERIODOS[year].forEach(period => {
-                    let periodExtraRaw = 0, periodNoc = 0;
                     const iter = new Date(period.start);
                     const end  = new Date(period.end);
-
                     while (iter <= end) {
                         const key = dateKey(iter);
                         if (data[key]) {
                             const { worked, noc, diff } = calcDay(key);
-                            if (worked > 0) { periodExtraRaw += diff; periodNoc += noc; }
+                            if (worked > 0) {
+                                totalExtrasRaw += diff;
+                                totalNoc += noc;
+                            }
                         }
                         iter.setDate(iter.getDate() + 1);
                     }
-
-                    const periodTotal = periodExtraRaw * 1.5 + periodNoc;
-                    if (periodTotal > 0) totalWeighted += periodTotal;
                 });
             });
 
-            const netBalance = totalWeighted - manualSubtraction;
-            const daysEq = netBalance / HOURS_PER_DAY;
+            // Librar
+            const netBalance    = (totalExtrasRaw - manualSubtraction) * 1.5;
+            const netBalanceNoc = netBalance + totalNoc;
+            const daysEq        = netBalanceNoc / HOURS_PER_DAY;
 
-            document.getElementById('bag-total-extras').innerText = dToC(totalWeighted);
-            document.getElementById('bag-subtracted').innerText   = dToC(manualSubtraction);
-            document.getElementById('bag-balance').innerText      = dToC(netBalance);
-            document.getElementById('bag-days-eq').innerText      = `${daysEq.toFixed(2)} días aprox.`;
+            // Cobrar
+            const cobraResto = totalExtrasRaw - horasCobrar;
+
+            document.getElementById('bag-suma-total').innerText    = dToC(totalExtrasRaw);
+            document.getElementById('bag-subtracted').innerText    = dToC(manualSubtraction);
+            document.getElementById('bag-balance').innerText       = dToC(netBalance);
+            document.getElementById('bag-balance-noc').innerText   = dToC(netBalanceNoc);
+            document.getElementById('bag-cobrar').innerText        = dToC(horasCobrar);
+            document.getElementById('bag-cobrar-resto').innerText  = dToC(cobraResto);
+            document.getElementById('bag-days-eq').innerText       = `${daysEq.toFixed(2)} días aprox.`;
         }
 
         function editManualSubtraction() {
@@ -374,6 +407,15 @@
             if (val !== null) {
                 manualSubtraction = tToD(val);
                 localStorage.setItem('horas_manual_sub', manualSubtraction);
+                updateBagStats();
+            }
+        }
+
+        function editHorasCobrar() {
+            const val = prompt("Horas a cobrar (HH:MM o decimal):", dToC(horasCobrar));
+            if (val !== null) {
+                horasCobrar = tToD(val);
+                localStorage.setItem('horas_cobrar', horasCobrar);
                 updateBagStats();
             }
         }
