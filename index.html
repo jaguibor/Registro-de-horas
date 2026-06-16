@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V7.1</title>
+    <title>Registro Horas V7.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -26,6 +26,17 @@
     </style>
 </head>
 <body class="pb-20">
+
+    <div id="lock-screen" class="fixed inset-0 bg-[#F2F2F7] z-[300] flex flex-col items-center justify-center p-6 hidden">
+        <div class="w-full max-w-xs text-center">
+            <div class="text-4xl mb-4">🔒</div>
+            <h2 class="text-xl font-bold mb-2">Acceso Protegido</h2>
+            <p class="text-xs text-gray-500 mb-6">Introduce tu clave de acceso. Tu navegador puede permitirte usar FaceID/Huella para autocompletar.</p>
+            <input type="password" id="lock-input" autocomplete="current-password" class="w-full p-4 bg-white rounded-2xl text-center text-lg font-bold shadow-sm border border-gray-200 mb-4 outline-none tracking-widest" placeholder="••••">
+            <button onclick="checkAccessKey()" class="w-full p-4 bg-black text-white font-bold rounded-2xl shadow-md active:scale-95 transition-transform">Desbloquear</button>
+            <button id="setup-lock-btn" onclick="setupAccessKey()" class="w-full mt-2 p-2 text-xs text-blue-600 font-semibold hidden">Configurar nueva clave</button>
+        </div>
+    </div>
 
     <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-[200] hidden items-center justify-center p-6 backdrop-blur-sm" onclick="if(event.target==this) closeModal()">
         <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl border border-gray-100 text-center">
@@ -48,7 +59,7 @@
         </div>
     </div>
 
-    <div class="max-w-md mx-auto">
+    <div id="app-content" class="max-w-md mx-auto hidden">
         <div class="header-sticky px-2">
             <div class="flex justify-between items-center pt-5 pb-1">
                 <h1 class="text-lg font-bold tracking-tight">Registro</h1>
@@ -169,6 +180,7 @@
                     <button onclick="downloadJSON()" class="flex-1 bg-gray-200/50 p-3 rounded-xl text-[9px] font-bold uppercase text-gray-600">Copia Seguridad</button>
                     <button onclick="document.getElementById('file-input').click()" class="flex-1 bg-gray-200/50 p-3 rounded-xl text-[9px] font-bold uppercase text-gray-600">Restaurar</button>
                 </div>
+                <button onclick="clearAccessKey()" class="w-full text-center text-[9px] text-red-400 font-bold uppercase tracking-wider mt-2">Cambiar clave de bloqueo</button>
             </div>
         </div>
     </div>
@@ -187,7 +199,6 @@
 
         const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
         const DAYS_SHORT = ["DOM","LUN","MAR","MIE","JUE","VIE","SAB"];
-        const DEFAULT_OBJ = "07:36";
 
         let currentYear = 2026;
         let currentMonthIdx = new Date().getMonth();
@@ -197,9 +208,14 @@
         let bag1Pay = parseFloat(localStorage.getItem('bag1_pay')) || 0;
         let bag2Sub = parseFloat(localStorage.getItem('bag2_sub')) || 0;
         let bag2Pay = parseFloat(localStorage.getItem('bag2_pay')) || 0;
-        let bag2Formacion = parseFloat(localStorage.getItem('bag2_formacion')) || 0; // Nueva variable formación
+        let bag2Formacion = parseFloat(localStorage.getItem('bag2_formacion')) || 0;
         
         let activeKey = null;
+
+        // Regla 1: Objetivo dual según la fecha
+        function getDefaultObjectiveByKey(key) {
+            return isPostMay2026ByKey(key) ? "07:00" : "07:36";
+        }
 
         function isPostMay2026ByKey(key) {
             const parts = key.split('-');
@@ -254,7 +270,7 @@
                 o1:  d.o1  || d.out || '',
                 i2:  forceC ? '' : (d.i2 || ''),
                 o2:  forceC ? '' : (d.o2 || ''),
-                obj: d.obj || DEFAULT_OBJ,
+                obj: d.obj || getDefaultObjectiveByKey(key),
                 note: d.note || ''
             };
         }
@@ -268,7 +284,7 @@
                 let w = tToD(d.o1) - tToD(d.i1);
                 if (w < 0) w += 24;
                 worked += w;
-                if (!postMay) noc += calcNightBonus(d.i1, d.o1); // Solo procesa nocturnidad antes de Mayo
+                if (!postMay) noc += calcNightBonus(d.i1, d.o1);
             }
             if (d.t === 'P' && d.i2 && d.o2 && !postMay) {
                 let w = tToD(d.o2) - tToD(d.i2);
@@ -302,7 +318,6 @@
             let mDays = 0, mExtraRaw = 0, mNocBonus = 0;
             const isNewRuleMonth = currentYear > 2026 || (currentYear === 2026 && currentMonthIdx >= 4);
             
-            // Ocultar/Modificar cabeceras superiores según el mes
             document.getElementById('lbl-conv').innerText = isNewRuleMonth ? "Conv. (x2.0)" : "Conv. (x1.5)";
             document.getElementById('lbl-noc-header').innerText = isNewRuleMonth ? "Noct. (N/A)" : "Noct.";
 
@@ -378,22 +393,18 @@
                 }
             });
 
-            // Bolsa 1: Hasta 30 de abril (Factor 1.5 + Nocturnidad)
             const b1Neto = (b1Raw - bag1Pay - bag1Sub) * 1.5;
             const b1TotalPlusNoc = b1Neto + b1Noc;
 
-            // Bolsa 2: Desde 1 de mayo (Factor 2.0 + Formación 1:1)
             const b2Neto = (b2Raw - bag2Pay - bag2Sub) * 2.0;
             const b2FinalConFormacion = b2Neto + bag2Formacion;
 
-            // Actualizar Interfaz Bolsa 1
             document.getElementById('bag1-raw').innerText = dToC(b1Raw);
             document.getElementById('bag1-sub').innerText = dToC(bag1Sub);
             document.getElementById('bag1-neto').innerText = dToC(b1Neto);
             document.getElementById('bag1-noc').innerText = dToC(b1TotalPlusNoc);
             document.getElementById('bag1-pay').innerText = dToC(bag1Pay);
 
-            // Actualizar Interfaz Bolsa 2
             document.getElementById('bag2-raw').innerText = dToC(b2Raw);
             document.getElementById('bag2-sub').innerText = dToC(bag2Sub);
             document.getElementById('bag2-formacion').innerText = dToC(bag2Formacion);
@@ -411,6 +422,31 @@
                 if (val !== null) { bag2Sub = tToD(val); localStorage.setItem('bag2_sub', bag2Sub); }
             }
             updateBagStats();
+        }
+
+        // Modificación del inyector manual inteligente por periodos
+        function setGlobalObjective() {
+            const isNewRuleMonth = currentYear > 2026 || (currentYear === 2026 && currentMonthIdx >= 4);
+            const sug = isNewRuleMonth ? "07:00" : "07:36";
+            
+            const newObj = prompt(`Establecer objetivo para el bloque de este mes (Sugerido: ${sug}):`, sug);
+            if (!newObj) return;
+            
+            for (let m = 0; m < 12; m++) {
+                const { start, end } = getPeriodDates(currentYear, m);
+                const iter = new Date(start);
+                while (iter <= end) {
+                    const k = dateKey(iter);
+                    // Solo aplica el cambio masivo al bloque correspondiente (antiguo o nuevo)
+                    if (isPostMay2026ByKey(k) === isNewRuleMonth) {
+                        if (!data[k]) data[k] = { t: 'C', i1: '', o1: '', obj: newObj };
+                        else data[k].obj = newObj;
+                    }
+                    iter.setDate(iter.getDate() + 1);
+                }
+            }
+            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
+            renderTable();
         }
 
         function editPay(bagNum) {
@@ -434,7 +470,7 @@
         }
 
         function upd(key, field, value) {
-            if (!data[key]) data[key] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: DEFAULT_OBJ, note: '' };
+            if (!data[key]) data[key] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: getDefaultObjectiveByKey(key), note: '' };
             if (field === 'i1') delete data[key].in;
             if (field === 'o1') delete data[key].out;
             data[key][field] = value;
@@ -457,28 +493,11 @@
         function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
 
         function saveModalData() {
-            if (!data[activeKey]) data[activeKey] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: DEFAULT_OBJ, note: '' };
+            if (!data[activeKey]) data[activeKey] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: getDefaultObjectiveByKey(activeKey), note: '' };
             data[activeKey].t    = isPostMay2026ByKey(activeKey) ? 'C' : document.getElementById('modal-tipo').value;
             data[activeKey].note = document.getElementById('modal-text').value;
             localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
             closeModal();
-            renderTable();
-        }
-
-        function setGlobalObjective() {
-            const newObj = prompt("Objetivo Anual (HH:MM):", DEFAULT_OBJ);
-            if (!newObj) return;
-            for (let m = 0; m < 12; m++) {
-                const { start, end } = getPeriodDates(currentYear, m);
-                const iter = new Date(start);
-                while (iter <= end) {
-                    const k = dateKey(iter);
-                    if (!data[k]) data[k] = { t: 'C', i1: '', o1: '', obj: newObj };
-                    else data[k].obj = newObj;
-                    iter.setDate(iter.getDate() + 1);
-                }
-            }
-            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
             renderTable();
         }
 
@@ -490,6 +509,53 @@
                 `<button onclick="changeMonth(${i})" class="flex-none px-3 py-2 rounded-full text-[10px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">${m.toUpperCase()}</button>`
             ).join('');
         }
+
+        // ─── Lógica de Bloqueo / Entrada Segura ───────────────────────────────────
+        function checkSecurity() {
+            const savedKey = localStorage.getItem('app_lock_key');
+            if (!savedKey) {
+                // Primera vez de uso: Forzar creación de llave
+                document.getElementById('lock-screen').classList.remove('hidden');
+                document.getElementById('setup-lock-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('lock-screen').classList.remove('hidden');
+                document.getElementById('lock-input').focus();
+            }
+        }
+
+        function setupAccessKey() {
+            const newKey = prompt("Crea un código numérico o contraseña de acceso:");
+            if (newKey && newKey.trim().length > 0) {
+                localStorage.setItem('app_lock_key', newKey.trim());
+                alert("Clave guardada con éxito.");
+                location.reload();
+            }
+        }
+
+        function checkAccessKey() {
+            const input = document.getElementById('lock-input').value;
+            const savedKey = localStorage.getItem('app_lock_key');
+            if (input === savedKey) {
+                document.getElementById('lock-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                initApp();
+            } else {
+                alert("Clave incorrecta.");
+                document.getElementById('lock-input').value = '';
+            }
+        }
+
+        function clearAccessKey() {
+            if(confirm("¿Seguro que quieres borrar la clave actual y configurar una nueva?")) {
+                localStorage.removeItem('app_lock_key');
+                location.reload();
+            }
+        }
+
+        // Permitir pulsar "Intro" en la pantalla de bloqueo
+        document.getElementById('lock-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkAccessKey();
+        });
 
         function downloadJSON() {
             const a = document.createElement('a');
@@ -525,8 +591,9 @@
             a.click();
         }
 
-        window.onload = () => {
+        function initApp() {
             const sel = document.getElementById('year-selector');
+            sel.innerHTML = '';
             [2026, 2027, 2028].forEach(y => {
                 const opt = document.createElement('option');
                 opt.value = y; opt.innerText = y;
@@ -535,6 +602,10 @@
             });
             renderTabs();
             renderTable(true);
+        }
+
+        window.onload = () => {
+            checkSecurity();
         };
     </script>
 </body>
