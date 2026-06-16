@@ -3,237 +3,610 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Registro Horas Protegido</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Registro Horas V7.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background-color: #F2F2F7; margin: 0; color: #1c1c1e; }
-        .lock-container { display: flex; flex-col: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+        :root { --ios-bg: #F2F2F7; }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: var(--ios-bg); margin: 0; color: #1c1c1e; -webkit-tap-highlight-color: transparent; }
+        .header-sticky { position: sticky; top: 0; z-index: 100; background: rgba(242, 242, 247, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding-top: env(safe-area-inset-top); border-bottom: 0.5px solid #d1d1d6; }
+        .ios-card { background: white; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); overflow: hidden; }
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+        th { background: #fbfbfd; color: #8e8e93; font-size: 7px; text-transform: uppercase; padding: 8px 0; text-align: center; font-weight: 700; border-bottom: 0.5px solid #e5e5ea; }
+        td { border-bottom: 0.5px solid #e5e5ea; text-align: center; vertical-align: middle; position: relative; padding: 5px 0; }
+        input { width: 100%; border: none; background: transparent; text-align: center; font-size: 13px; outline: none; font-variant-numeric: tabular-nums; }
+        .col-dia { width: 12%; } .col-data { width: 17%; } .col-total { width: 15%; } .col-obj { width: 16%; } .col-extra { width: 15%; }
+        .weekend { background-color: #f9f9fb; }
+        .today-row { background-color: #fff9c4 !important; }
+        .tipo-tag { font-size: 7px; font-weight: 900; color: #007aff; display: block; margin-top: -1px; }
+        .has-note::after { content: ''; position: absolute; top: 4px; left: 4px; width: 4px; height: 4px; background: #ff9500; border-radius: 50%; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .dieta-row-num { color: #ff3b30 !important; font-weight: 900 !important; }
     </style>
 </head>
-<body>
+<body class="pb-20">
 
-    <div id="secure-lock" class="lock-container">
+    <div id="lock-screen" class="fixed inset-0 bg-[#F2F2F7] z-[300] flex flex-col items-center justify-center p-6 hidden">
         <div class="w-full max-w-xs text-center">
-            <div class="text-5xl mb-4">🔐</div>
-            <h2 class="text-xl font-bold mb-2 text-gray-900">Archivo Cifrado</h2>
-            <p class="text-xs text-gray-500 mb-6">Esta aplicación está protegida por cifrado militar AES-256. Introduce la clave para reconstruir el entorno.</p>
-            
-            <input type="password" id="crypto-pass" autocomplete="current-password" 
-                   class="w-full p-4 bg-white rounded-2xl text-center text-xl font-bold shadow-sm border border-gray-200 mb-4 outline-none tracking-widest" 
-                   placeholder="••••">
-            
-            <button onclick="unlockAndDecrypt()" 
-                    class="w-full p-4 bg-black text-white font-bold rounded-2xl shadow-md active:scale-95 transition-transform">
-                Descifrar Aplicación
-            </button>
-            <p id="error-msg" class="text-xs text-red-500 font-semibold mt-3 hidden">❌ Clave incorrecta. Error de integridad criptográfica.</p>
+            <div class="text-4xl mb-4">🔒</div>
+            <h2 class="text-xl font-bold mb-2">Acceso Protegido</h2>
+            <p class="text-xs text-gray-500 mb-6">Introduce tu clave de acceso. Tu navegador puede permitirte usar FaceID/Huella para autocompletar.</p>
+            <input type="password" id="lock-input" autocomplete="current-password" class="w-full p-4 bg-white rounded-2xl text-center text-lg font-bold shadow-sm border border-gray-200 mb-4 outline-none tracking-widest" placeholder="••••">
+            <button onclick="checkAccessKey()" class="w-full p-4 bg-black text-white font-bold rounded-2xl shadow-md active:scale-95 transition-transform">Desbloquear</button>
+            <button id="setup-lock-btn" onclick="setupAccessKey()" class="w-full mt-2 p-2 text-xs text-blue-600 font-semibold hidden">Configurar nueva clave</button>
         </div>
     </div>
 
-    <div id="app-runtime" class="hidden"></div>
+    <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-[200] hidden items-center justify-center p-6 backdrop-blur-sm" onclick="if(event.target==this) closeModal()">
+        <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl border border-gray-100 text-center">
+            <h3 id="modal-date" class="text-lg font-bold mb-4 text-blue-600"></h3>
+            <div id="modal-tipo-container" class="mb-4 text-left">
+                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Tipo de Jornada</label>
+                <select id="modal-tipo" class="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-bold appearance-none">
+                    <option value="C">Jornada Completa</option>
+                    <option value="P">Jornada Partida</option>
+                </select>
+            </div>
+            <div class="mb-5 text-left">
+                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Nota o Incidencia</label>
+                <textarea id="modal-text" class="w-full h-24 p-3 border border-gray-100 rounded-xl bg-gray-50 text-sm outline-none" placeholder="Escribe aquí..."></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 p-3 text-sm font-bold text-gray-400">Cerrar</button>
+                <button onclick="saveModalData()" class="flex-1 p-3 text-sm font-bold bg-black text-white rounded-xl">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-content" class="max-w-md mx-auto hidden">
+        <div class="header-sticky px-2">
+            <div class="flex justify-between items-center pt-5 pb-1">
+                <h1 class="text-lg font-bold tracking-tight">Registro</h1>
+                <div class="flex gap-1">
+                    <button onclick="setGlobalObjective()" class="bg-blue-50 text-blue-600 px-2 py-1.5 rounded-lg text-[9px] font-bold border border-blue-100 uppercase">Obj. Anual</button>
+                    <select id="year-selector" class="bg-gray-200 px-1 py-1 rounded font-bold text-xs" onchange="changeYear(this.value)"></select>
+                </div>
+            </div>
+
+            <div id="month-tabs" class="flex overflow-x-auto gap-1 py-1 no-scrollbar mb-1"></div>
+
+            <div class="grid grid-cols-5 gap-1 py-1 text-center">
+                <div class="ios-card p-1.5"><p class="text-[6px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-[11px] font-bold">0</p></div>
+                <div class="ios-card p-1.5 border-l-2 border-blue-200"><p class="text-[6px] font-bold text-gray-400 uppercase">Extras</p><p id="stat-extra-raw" class="text-[11px] font-bold">0:00</p></div>
+                <div class="ios-card p-1.5 bg-blue-50/30"><p id="lbl-conv" class="text-[6px] font-bold text-blue-600 uppercase">Conv. (x2.0)</p><p id="stat-conv" class="text-[11px] font-bold text-blue-700">0:00</p></div>
+                <div class="ios-card p-1.5 bg-indigo-50/50"><p id="lbl-noc-header" class="text-[6px] font-bold text-indigo-500 uppercase">Noct.</p><p id="stat-noc" class="text-[11px] font-bold text-indigo-700">0:00</p></div>
+                <div class="ios-card p-1.5 bg-[#1c1c1e] text-white"><p class="text-[6px] font-bold text-gray-400 uppercase">Suma Total</p><p id="stat-total" class="text-[11px] font-bold">0:00</p></div>
+            </div>
+
+            <div class="ios-card rounded-b-none border-b-0 shadow-none mt-2">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-dia">Día</th>
+                            <th class="col-data">Entrada</th>
+                            <th class="col-data">Salida</th>
+                            <th class="col-total text-blue-600">Total</th>
+                            <th class="col-obj">Objetivo</th>
+                            <th class="col-extra">Extras</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+
+        <div class="px-2">
+            <div class="ios-card rounded-t-none border-t-0 mb-4">
+                <table id="main-table">
+                    <colgroup>
+                        <col class="col-dia"><col class="col-data"><col class="col-data">
+                        <col class="col-total"><col class="col-obj"><col class="col-extra">
+                    </colgroup>
+                    <tbody id="table-body" class="text-xs"></tbody>
+                </table>
+            </div>
+
+            <div class="ios-card p-4 mb-4 border-2 border-indigo-100 bg-indigo-50/20">
+                <h2 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-4 border-b border-indigo-100 pb-1">Bolsas Acumuladas</h2>
+
+                <div class="mb-5 bg-white/40 p-3 rounded-xl border border-gray-200/50">
+                    <p class="text-[9px] font-black text-gray-600 uppercase mb-2 flex justify-between">
+                        <span>1. Periodo Anterior (Hasta 30 Abr)</span>
+                        <span class="text-blue-600 font-bold">Factor x1.5</span>
+                    </p>
+                    <div class="grid grid-cols-4 gap-1 text-center">
+                        <div class="bg-white p-1.5 rounded-lg border border-gray-100">
+                            <p class="text-[5px] text-gray-400 font-bold uppercase">Suma Extras</p>
+                            <p id="bag1-raw" class="text-[10px] font-bold">0:00</p>
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-red-100">
+                            <p class="text-[5px] text-red-400 font-bold uppercase">Restado</p>
+                            <p id="bag1-sub" class="text-[10px] font-bold text-red-500 cursor-pointer" onclick="editSub(1)">0:00</p>
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-indigo-100">
+                            <p class="text-[5px] text-indigo-500 font-bold uppercase">Saldo Neto</p>
+                            <p id="bag1-neto" class="text-[10px] font-bold text-indigo-600">0:00</p>
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-indigo-100">
+                            <p class="text-[5px] text-indigo-500 font-bold uppercase">Saldo+Noct</p>
+                            <p id="bag1-noc" class="text-[10px] font-black text-indigo-800">0:00</p>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-gray-100 text-[9px]">
+                        <span class="text-gray-400 font-medium">Horas Sacadas para Cobrar:</span>
+                        <span id="bag1-pay" class="font-black text-orange-600 cursor-pointer" onclick="editPay(1)">0:00</span>
+                    </div>
+                </div>
+
+                <div class="bg-white/40 p-3 rounded-xl border border-indigo-200">
+                    <p class="text-[9px] font-black text-indigo-700 uppercase mb-2 flex justify-between">
+                        <span>2. Nuevo Periodo (Desde 1 May)</span>
+                        <span class="text-indigo-600 font-black">Factor x2.0</span>
+                    </p>
+                    <div class="grid grid-cols-4 gap-1 text-center mb-2">
+                        <div class="bg-white p-1.5 rounded-lg border border-gray-100">
+                            <p class="text-[5px] text-gray-400 font-bold uppercase">Suma Extras</p>
+                            <p id="bag2-raw" class="text-[10px] font-bold">0:00</p>
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-red-100">
+                            <p class="text-[5px] text-red-400 font-bold uppercase">Restado</p>
+                            <p id="bag2-sub" class="text-[10px] font-bold text-red-500 cursor-pointer" onclick="editSub(2)">0:00</p>
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-green-100">
+                            <p class="text-[5px] text-green-500 font-bold uppercase">Formación (1:1)</p>
+                            <p id="bag2-formacion" class="text-[10px] font-bold text-green-600 cursor-pointer" onclick="editFormacion()">0:00</p>
+                        </div>
+                        <div class="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
+                            <p class="text-[5px] text-indigo-100 font-bold uppercase">Saldo Final</p>
+                            <p id="bag2-noc" class="text-[10px] font-black text-white">0:00</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[9px]">
+                        <div class="flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-indigo-100">
+                            <span class="text-gray-400 font-medium">Saldo Neto:</span>
+                            <span id="bag2-neto" class="font-bold text-indigo-600">0:00</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-indigo-100">
+                            <span class="text-gray-400 font-medium">Para Cobrar:</span>
+                            <span id="bag2-pay" class="font-black text-orange-600 cursor-pointer" onclick="editPay(2)">0:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 mb-10">
+                <button onclick="exportToCSV()" class="w-full bg-white border border-gray-200 p-4 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-sm">Exportar a Excel</button>
+                <div class="flex gap-2">
+                    <button onclick="downloadJSON()" class="flex-1 bg-gray-200/50 p-3 rounded-xl text-[9px] font-bold uppercase text-gray-600">Copia Seguridad</button>
+                    <button onclick="document.getElementById('file-input').click()" class="flex-1 bg-gray-200/50 p-3 rounded-xl text-[9px] font-bold uppercase text-gray-600">Restaurar</button>
+                </div>
+                <button onclick="clearAccessKey()" class="w-full text-center text-[9px] text-red-400 font-bold uppercase tracking-wider mt-2">Cambiar clave de bloqueo</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="file-input" class="hidden" accept=".json">
 
     <script>
-        // Bloque de código V7.2 completamente cifrado en AES-256
-        // Sin la clave correcta, esta cadena es matemáticamente basura imposible de revertir.
-        const VAULT_DATA = "U2FsdGVkX1926nOnBshGq8U0HhU99S1yGzV27B7vF7Uu6vT6w7w/L0g5d7V8O9w3X1Y2Z3A4B5C6D7E8F9G0H1I2J3K4L5M6N7O8P9Q0R1S2T3U4V5W6X7Y8Z9A0B1C2D3E4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T9U0V1W2X3Y4Z5A6B7C8D9E0F1G2H3I4J5K6L7M8N9O0P1Q2R3S4T5U6V7W8X9Y0Z1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7A8B9C0D1E2F3G4H5I6J7K8L9M0N1O2P3Q4R5S6T7U8V9W0X1Y2Z3A4B5C6D7E8F9G0H1I2J3K4L5M6N7O8P9Q0R1S2T3U4V5W6X7Y8Z9A0B1C2D3E4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T9U0V1W2X3Y4Z5A6B7C8D9E0F1G2H3I4J5K6L7M8N9O0P1Q2R3S4T5U6V7W8X9Y0Z1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7A8B9C0D1E2F3G4H5I6J7K8L9M0N1O2P3Q4R5S6T7U8V9W0X1Y2Z3A4B5C6D7E8F9G0H1I2J3K4L5M6N7O8P9Q0R1S2T3U4V5W6X7Y8Z9A0B1C2D3E4F5G6H7I8J9K0L1M2N3O4P5Q6R7S8T9U0V1W2X3Y4Z5A6B7C8D9E0F1G2H3I4J5K6L7M8N9O0P1Q2R3S4T5U6V7W8X9Y0Z1A2B3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7A8B9C+7S+Jv4M0lD6/o=";
+        const CONFIG_PERIODOS_OLD = {
+            2026: [
+                { start: "2026-01-01", end: "2026-01-25" },
+                { start: "2026-01-26", end: "2026-02-22" },
+                { start: "2026-02-23", end: "2026-03-29" },
+                { start: "2026-03-30", end: "2026-04-26" }
+            ]
+        };
 
-        // Sobrecarga de seguridad para la cadena real (inyectada de forma dinámica en ejecución simulación estricta)
-        function unlockAndDecrypt() {
-            const password = document.getElementById('crypto-pass').value;
-            const errorElement = document.getElementById('error-msg');
+        const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+        const DAYS_SHORT = ["DOM","LUN","MAR","MIE","JUE","VIE","SAB"];
+
+        let currentYear = 2026;
+        let currentMonthIdx = new Date().getMonth();
+        let data = JSON.parse(localStorage.getItem('horas_multiy_v1')) || {};
+        
+        let bag1Sub = parseFloat(localStorage.getItem('bag1_sub')) || 0;
+        let bag1Pay = parseFloat(localStorage.getItem('bag1_pay')) || 0;
+        let bag2Sub = parseFloat(localStorage.getItem('bag2_sub')) || 0;
+        let bag2Pay = parseFloat(localStorage.getItem('bag2_pay')) || 0;
+        let bag2Formacion = parseFloat(localStorage.getItem('bag2_formacion')) || 0;
+        
+        let activeKey = null;
+
+        // Regla 1: Objetivo dual según la fecha
+        function getDefaultObjectiveByKey(key) {
+            return isPostMay2026ByKey(key) ? "07:00" : "07:36";
+        }
+
+        function isPostMay2026ByKey(key) {
+            const parts = key.split('-');
+            const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1;
+            return y > 2026 || (y === 2026 && m >= 4);
+        }
+
+        function tToD(t) {
+            if (!t) return 0;
+            let clean = t.toString().replace(',', '.').trim();
+            if (clean.includes('.') && !clean.includes(':')) {
+                const parts = clean.split('.');
+                if (parts[1] && parts[1].length === 2) clean = parts[0] + ':' + parts[1];
+                else return parseFloat(clean) || 0;
+            }
+            if (!clean.includes(':')) {
+                if (clean.length <= 2) clean += ':00';
+                else clean = clean.slice(0, -2) + ':' + clean.slice(-2);
+            }
+            const [h, m] = clean.split(':').map(Number);
+            return (h || 0) + ((m || 0) / 60);
+        }
+
+        function dToC(n) {
+            const sign = n < -0.001 ? '-' : '';
+            const abs = Math.abs(n);
+            const h = Math.floor(abs);
+            const m = Math.round((abs - h) * 60);
+            return `${sign}${h}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function calcNightBonus(startStr, endStr) {
+            if (!startStr || !endStr) return 0;
+            let start = tToD(startStr);
+            let end = tToD(endStr);
+            if (end < start) end += 24;
+            let nightHours = 0;
+            const STEP = 0.05;
+            for (let h = start; h < end; h += STEP) {
+                const hour = h % 24;
+                if (hour >= 22 || hour < 6) nightHours += STEP;
+            }
+            return nightHours * 0.25;
+        }
+
+        function getDay(key) {
+            const d = data[key] || {};
+            const forceC = isPostMay2026ByKey(key);
+            return {
+                t:   forceC ? 'C' : (d.t || 'C'),
+                i1:  d.i1  || d.in  || '',
+                o1:  d.o1  || d.out || '',
+                i2:  forceC ? '' : (d.i2 || ''),
+                o2:  forceC ? '' : (d.o2 || ''),
+                obj: d.obj || getDefaultObjectiveByKey(key),
+                note: d.note || ''
+            };
+        }
+
+        function calcDay(key) {
+            const d = getDay(key);
+            let worked = 0, noc = 0;
+            const postMay = isPostMay2026ByKey(key);
+
+            if (d.i1 && d.o1) {
+                let w = tToD(d.o1) - tToD(d.i1);
+                if (w < 0) w += 24;
+                worked += w;
+                if (!postMay) noc += calcNightBonus(d.i1, d.o1);
+            }
+            if (d.t === 'P' && d.i2 && d.o2 && !postMay) {
+                let w = tToD(d.o2) - tToD(d.i2);
+                if (w < 0) w += 24;
+                worked += w;
+                noc += calcNightBonus(d.i2, d.o2);
+            }
+            return { worked, noc, obj: tToD(d.obj), diff: worked > 0 ? worked - tToD(d.obj) : 0 };
+        }
+
+        function getPeriodDates(year, monthIdx) {
+            if (year > 2026 || (year === 2026 && monthIdx >= 4)) {
+                return { start: new Date(year, monthIdx, 1), end: new Date(year, monthIdx + 1, 0) };
+            }
+            if (CONFIG_PERIODOS_OLD[year]?.[monthIdx]) {
+                return { start: new Date(CONFIG_PERIODOS_OLD[year][monthIdx].start), end: new Date(CONFIG_PERIODOS_OLD[year][monthIdx].end) };
+            }
+            return { start: new Date(year, monthIdx, 1), end: new Date(year, monthIdx + 1, 0) };
+        }
+
+        function dateKey(d) { return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+
+        function renderTable(shouldScroll = false) {
+            const body = document.getElementById('table-body');
+            body.innerHTML = '';
+
+            const { start, end } = getPeriodDates(currentYear, currentMonthIdx);
+            const today = new Date();
+            const todayKey = dateKey(today);
+
+            let mDays = 0, mExtraRaw = 0, mNocBonus = 0;
+            const isNewRuleMonth = currentYear > 2026 || (currentYear === 2026 && currentMonthIdx >= 4);
             
-            // Forzar comparación con tu clave estricta antes de procesar
-            if (password !== "1526") {
-                errorElement.classList.remove('hidden');
-                document.getElementById('crypto-pass').value = '';
-                return;
+            document.getElementById('lbl-conv').innerText = isNewRuleMonth ? "Conv. (x2.0)" : "Conv. (x1.5)";
+            document.getElementById('lbl-noc-header').innerText = isNewRuleMonth ? "Noct. (N/A)" : "Noct.";
+
+            const iter = new Date(start);
+            while (iter <= end) {
+                const key = dateKey(iter);
+                const d = getDay(key);
+                const { worked, noc, diff } = calcDay(key);
+
+                if (worked > 0) { mDays++; mExtraRaw += diff; mNocBonus += noc; }
+
+                const row = document.createElement('tr');
+                if (key === todayKey) { row.className = 'today-row'; row.id = 'scroll-target'; }
+                if (iter.getDay() === 0 || iter.getDay() === 6) row.classList.add('weekend');
+
+                let isDieta = false;
+                if (isNewRuleMonth && d.o1) {
+                    if (tToD(d.o1) > tToD("16:05")) isDieta = true;
+                }
+
+                const dayNum = iter.getDate();
+                const monNum = iter.getMonth() + 1;
+
+                row.innerHTML = `
+                    <td class="col-dia${d.note ? ' has-note' : ''}" onclick="openModal('${key}', ${dayNum}, ${iter.getMonth()})">
+                        <div class="text-[6px] font-bold text-gray-400 uppercase">${DAYS_SHORT[iter.getDay()]} ${monNum}/${iter.getFullYear()}</div>
+                        <div class="${isDieta ? 'dieta-row-num' : 'text-gray-900'} text-[12px] font-bold">${dayNum}</div>
+                        <span class="tipo-tag">(${d.t})</span>
+                    </td>
+                    <td class="col-data">
+                        <input type="text" value="${d.i1}" onblur="upd('${key}','i1',this.value)" placeholder="--:--">
+                        ${d.t === 'P' ? `<input type="text" value="${d.i2}" onblur="upd('${key}','i2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
+                    </td>
+                    <td class="col-data">
+                        <input type="text" value="${d.o1}" onblur="upd('${key}','o1',this.value)" placeholder="--:--">
+                        ${d.t === 'P' ? `<input type="text" value="${d.o2}" onblur="upd('${key}','o2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
+                    </td>
+                    <td class="col-total font-semibold text-blue-600">${worked > 0 ? dToC(worked) : '-'}</td>
+                    <td class="col-obj"><input type="text" value="${d.obj}" onblur="upd('${key}','obj',this.value)"></td>
+                    <td class="col-extra font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff >= 0 ? '+' : '') + dToC(diff) : ''}</td>
+                `;
+                body.appendChild(row);
+                iter.setDate(iter.getDate() + 1);
             }
 
-            try {
-                // Descifrado dinámico en memoria RAM
-                // Reconstruimos la aplicación real V7.2 que guardamos previamente en la firma cifrada.
-                // Nota: Por seguridad estricta, la aplicación utiliza una inyección limpia basada en el código verificado.
-                
-                document.getElementById('secure-lock').classList.add('hidden');
-                const runtime = document.getElementById('app-runtime');
-                runtime.classList.remove('hidden');
-                
-                // Carga del esqueleto funcional limpio y verificado
-                runtime.innerHTML = `
-                    <div class="max-w-md mx-auto">
-                        <div class="header-sticky px-2 pt-5 pb-1 flex justify-between items-center">
-                            <h1 class="text-lg font-bold tracking-tight">Registro Autenticado</h1>
-                            <div class="flex gap-1">
-                                <button onclick="setGlobalObjective()" class="bg-blue-50 text-blue-600 px-2 py-1.5 rounded-lg text-[9px] font-bold border border-blue-100 uppercase">Obj. Anual</button>
-                                <select id="year-selector" class="bg-gray-200 px-1 py-1 rounded font-bold text-xs" onchange="changeYear(this.value)"></select>
-                            </div>
-                        </div>
-                        <div id="month-tabs" class="flex overflow-x-auto gap-1 py-1 px-2 no-scrollbar mb-1"></div>
-                        <div class="grid grid-cols-5 gap-1 py-1 px-2 text-center">
-                            <div class="bg-white p-1.5 rounded-lg shadow-sm"><p class="text-[6px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-[11px] font-bold">0</p></div>
-                            <div class="bg-white p-1.5 rounded-lg shadow-sm border-l-2 border-blue-200"><p class="text-[6px] font-bold text-gray-400 uppercase">Extras</p><p id="stat-extra-raw" class="text-[11px] font-bold">0:00</p></div>
-                            <div class="bg-white p-1.5 rounded-lg shadow-sm bg-blue-50/30"><p id="lbl-conv" class="text-[6px] font-bold text-blue-600 uppercase">Conv.</p><p id="stat-conv" class="text-[11px] font-bold text-blue-700">0:00</p></div>
-                            <div class="bg-white p-1.5 rounded-lg shadow-sm bg-indigo-50/50"><p id="lbl-noc-header" class="text-[6px] font-bold text-indigo-500 uppercase">Noct.</p><p id="stat-noc" class="text-[11px] font-bold text-indigo-700">0:00</p></div>
-                            <div class="bg-[#1c1c1e] p-1.5 rounded-lg text-white shadow-sm"><p class="text-[6px] font-bold text-gray-400 uppercase">Suma Total</p><p id="stat-total" class="text-[11px] font-bold">0:00</p></div>
-                        </div>
-                        <div class="px-2 mt-2"><div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                            <table>
-                                <thead>
-                                    <tr class="text-[7px] text-gray-400 uppercase border-b border-gray-100 bg-gray-50">
-                                        <th class="py-2 text-center font-bold">Día</th>
-                                        <th class="text-center font-bold">Entrada</th>
-                                        <th class="text-center font-bold">Salida</th>
-                                        <th class="text-center font-bold text-blue-600">Total</th>
-                                        <th class="text-center font-bold">Objetivo</th>
-                                        <th class="text-center font-bold">Extras</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-body" class="text-xs"></tbody>
-                            </table>
-                        </div></div>
-                        <div id="bolsas-container" class="px-2 mt-4"></div>
-                    </div>
-                `;
+            const currentFactor = isNewRuleMonth ? 2.0 : 1.5;
+            document.getElementById('stat-days').innerText      = mDays;
+            document.getElementById('stat-extra-raw').innerText = dToC(mExtraRaw);
+            document.getElementById('stat-conv').innerText      = dToC(mExtraRaw * currentFactor);
+            document.getElementById('stat-noc').innerText       = isNewRuleMonth ? "0:00" : dToC(mNocBonus);
+            document.getElementById('stat-total').innerText     = dToC(mExtraRaw * currentFactor + (isNewRuleMonth ? 0 : mNocBonus));
 
-                // Inyección dinámica de la lógica operativa de la aplicación (Inyectando los scripts de cálculo)
-                initDecryptedAppLogic();
+            updateBagStats();
 
-            } catch (e) {
-                errorElement.classList.remove('hidden');
+            if (shouldScroll) {
+                setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
             }
         }
 
-        function initDecryptedAppLogic() {
-            // Lógica exacta V7.2 adaptada para aislamiento en Sandbox interno
-            window.CONFIG_PERIODOS_OLD = { 2026: [ { start: "2026-01-01", end: "2026-01-25" }, { start: "2026-01-26", end: "2026-02-22" }, { start: "2026-02-23", end: "2026-03-29" }, { start: "2026-03-30", end: "2026-04-26" } ] };
-            window.MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-            window.DAYS_SHORT = ["DOM","LUN","MAR","MIE","JUE","VIE","SAB"];
-            window.currentYear = 2026;
-            window.currentMonthIdx = new Date().getMonth();
-            window.data = JSON.parse(localStorage.getItem('horas_multiy_v1')) || {};
+        function updateBagStats() {
+            let b1Raw = 0, b1Noc = 0;
+            let b2Raw = 0;
+
+            Object.keys(data).forEach(key => {
+                const { worked, noc, diff } = calcDay(key);
+                if (worked > 0) {
+                    if (isPostMay2026ByKey(key)) {
+                        b2Raw += diff;
+                    } else {
+                        b1Raw += diff;
+                        b1Noc += noc;
+                    }
+                }
+            });
+
+            const b1Neto = (b1Raw - bag1Pay - bag1Sub) * 1.5;
+            const b1TotalPlusNoc = b1Neto + b1Noc;
+
+            const b2Neto = (b2Raw - bag2Pay - bag2Sub) * 2.0;
+            const b2FinalConFormacion = b2Neto + bag2Formacion;
+
+            document.getElementById('bag1-raw').innerText = dToC(b1Raw);
+            document.getElementById('bag1-sub').innerText = dToC(bag1Sub);
+            document.getElementById('bag1-neto').innerText = dToC(b1Neto);
+            document.getElementById('bag1-noc').innerText = dToC(b1TotalPlusNoc);
+            document.getElementById('bag1-pay').innerText = dToC(bag1Pay);
+
+            document.getElementById('bag2-raw').innerText = dToC(b2Raw);
+            document.getElementById('bag2-sub').innerText = dToC(bag2Sub);
+            document.getElementById('bag2-formacion').innerText = dToC(bag2Formacion);
+            document.getElementById('bag2-neto').innerText = dToC(b2Neto);
+            document.getElementById('bag2-noc').innerText = dToC(b2FinalConFormacion);
+            document.getElementById('bag2-pay').innerText = dToC(bag2Pay);
+        }
+
+        function editSub(bagNum) {
+            if (bagNum === 1) {
+                const val = prompt("Bolsa 1 (Antigua) - Horas a restar manualmente:", dToC(bag1Sub));
+                if (val !== null) { bag1Sub = tToD(val); localStorage.setItem('bag1_sub', bag1Sub); }
+            } else {
+                const val = prompt("Bolsa 2 (Nueva) - Horas a restar manualmente:", dToC(bag2Sub));
+                if (val !== null) { bag2Sub = tToD(val); localStorage.setItem('bag2_sub', bag2Sub); }
+            }
+            updateBagStats();
+        }
+
+        // Modificación del inyector manual inteligente por periodos
+        function setGlobalObjective() {
+            const isNewRuleMonth = currentYear > 2026 || (currentYear === 2026 && currentMonthIdx >= 4);
+            const sug = isNewRuleMonth ? "07:00" : "07:36";
             
-            window.bag1Sub = parseFloat(localStorage.getItem('bag1_sub')) || 0;
-            window.bag1Pay = parseFloat(localStorage.getItem('bag1_pay')) || 0;
-            window.bag2Sub = parseFloat(localStorage.getItem('bag2_sub')) || 0;
-            window.bag2Pay = parseFloat(localStorage.getItem('bag2_pay')) || 0;
-            window.bag2Formacion = parseFloat(localStorage.getItem('bag2_formacion')) || 0;
-
-            window.isPostMay2026ByKey = function(key) {
-                const parts = key.split('-');
-                return parseInt(parts[0]) > 2026 || (parseInt(parts[0]) === 2026 && (parseInt(parts[1]) - 1) >= 4);
-            };
-
-            window.getDefaultObjectiveByKey = function(key) {
-                return window.isPostMay2026ByKey(key) ? "07:00" : "07:36";
-            };
-
-            window.tToD = function(t) {
-                if (!t) return 0;
-                let clean = t.toString().replace(',', '.').trim();
-                if (!clean.includes(':')) {
-                    if (clean.length <= 2) clean += ':00';
-                    else clean = clean.slice(0, -2) + ':' + clean.slice(-2);
-                }
-                const [h, m] = clean.split(':').map(Number);
-                return (h || 0) + ((m || 0) / 60);
-            };
-
-            window.dToC = function(n) {
-                const sign = n < -0.001 ? '-' : '';
-                const abs = Math.abs(n);
-                const h = Math.floor(abs);
-                const m = Math.round((abs - h) * 60);
-                return `${sign}${h}:${m.toString().padStart(2, '0')}`;
-            };
-
-            window.getDay = function(key) {
-                const d = window.data[key] || {};
-                const forceC = window.isPostMay2026ByKey(key);
-                return {
-                    t: forceC ? 'C' : (d.t || 'C'),
-                    i1: d.i1 || d.in || '',
-                    o1: d.o1 || d.out || '',
-                    i2: forceC ? '' : (d.i2 || ''),
-                    o2: forceC ? '' : (d.o2 || ''),
-                    obj: d.obj || window.getDefaultObjectiveByKey(key),
-                    note: d.note || ''
-                };
-            };
-
-            window.calcDay = function(key) {
-                const d = window.getDay(key);
-                let worked = 0;
-                if (d.i1 && d.o1) {
-                    let w = window.tToD(d.o1) - window.tToD(d.i1);
-                    if (w < 0) w += 24;
-                    worked += w;
-                }
-                return { worked, obj: window.tToD(d.obj), diff: worked > 0 ? worked - window.tToD(d.obj) : 0 };
-            };
-
-            window.renderTable = function() {
-                const body = document.getElementById('table-body');
-                if(!body) return;
-                body.innerHTML = '';
-                
-                // Renderizado dinámico simplificado pero seguro
-                const start = new Date(window.currentYear, window.currentMonthIdx, 1);
-                const end = new Date(window.currentYear, window.currentMonthIdx + 1, 0);
-                
-                let iter = new Date(start);
-                while(iter <= end) {
-                    const key = `${iter.getFullYear()}-${iter.getMonth() + 1}-${iter.getDate()}`;
-                    const d = window.getDay(key);
-                    const { worked, diff } = window.calcDay(key);
-                    
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-2 text-center font-bold">${iter.getDate()}</td>
-                        <td class="p-1"><input type="text" class="w-full text-center bg-gray-50 rounded" value="${d.i1}" onblur="window.upd('${key}','i1',this.value)"></td>
-                        <td class="p-1"><input type="text" class="w-full text-center bg-gray-50 rounded" value="${d.o1}" onblur="window.upd('${key}','o1',this.value)"></td>
-                        <td class="text-center font-medium">${worked > 0 ? window.dToC(worked) : '-'}</td>
-                        <td class="p-1"><input type="text" class="w-full text-center bg-gray-50 rounded" value="${d.obj}" onblur="window.upd('${key}','obj',this.value)"></td>
-                        <td class="text-center font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? window.dToC(diff) : ''}</td>
-                    `;
-                    body.appendChild(row);
+            const newObj = prompt(`Establecer objetivo para el bloque de este mes (Sugerido: ${sug}):`, sug);
+            if (!newObj) return;
+            
+            for (let m = 0; m < 12; m++) {
+                const { start, end } = getPeriodDates(currentYear, m);
+                const iter = new Date(start);
+                while (iter <= end) {
+                    const k = dateKey(iter);
+                    // Solo aplica el cambio masivo al bloque correspondiente (antiguo o nuevo)
+                    if (isPostMay2026ByKey(k) === isNewRuleMonth) {
+                        if (!data[k]) data[k] = { t: 'C', i1: '', o1: '', obj: newObj };
+                        else data[k].obj = newObj;
+                    }
                     iter.setDate(iter.getDate() + 1);
                 }
+            }
+            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
+            renderTable();
+        }
+
+        function editPay(bagNum) {
+            if (bagNum === 1) {
+                const val = prompt("Bolsa 1 (Antigua) - Horas para COBRAR:", dToC(bag1Pay));
+                if (val !== null) { bag1Pay = tToD(val); localStorage.setItem('bag1_pay', bag1Pay); }
+            } else {
+                const val = prompt("Bolsa 2 (Nueva) - Horas para COBRAR:", dToC(bag2Pay));
+                if (val !== null) { bag2Pay = tToD(val); localStorage.setItem('bag2_pay', bag2Pay); }
+            }
+            updateBagStats();
+        }
+
+        function editFormacion() {
+            const val = prompt("Horas de FORMACIÓN realizadas (Se suman 1:1 al Saldo Final):", dToC(bag2Formacion));
+            if (val !== null) {
+                bag2Formacion = tToD(val);
+                localStorage.setItem('bag2_formacion', bag2Formacion);
+                updateBagStats();
+            }
+        }
+
+        function upd(key, field, value) {
+            if (!data[key]) data[key] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: getDefaultObjectiveByKey(key), note: '' };
+            if (field === 'i1') delete data[key].in;
+            if (field === 'o1') delete data[key].out;
+            data[key][field] = value;
+            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
+            renderTable(false);
+        }
+
+        function openModal(key, dayNum, monthIdx) {
+            activeKey = key;
+            document.getElementById('modal-date').innerText  = `${dayNum} de ${MONTHS[monthIdx]}`;
+            document.getElementById('modal-text').value      = data[key]?.note || '';
+            
+            const isPartidaHidden = isPostMay2026ByKey(key);
+            document.getElementById('modal-tipo-container').style.display = isPartidaHidden ? 'none' : 'block';
+            document.getElementById('modal-tipo').value      = isPartidaHidden ? 'C' : (data[key]?.t || 'C');
+            
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+        function saveModalData() {
+            if (!data[activeKey]) data[activeKey] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: getDefaultObjectiveByKey(activeKey), note: '' };
+            data[activeKey].t    = isPostMay2026ByKey(activeKey) ? 'C' : document.getElementById('modal-tipo').value;
+            data[activeKey].note = document.getElementById('modal-text').value;
+            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
+            closeModal();
+            renderTable();
+        }
+
+        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(true); }
+        function changeYear(y)  { currentYear = parseInt(y); renderTable(true); }
+
+        function renderTabs() {
+            document.getElementById('month-tabs').innerHTML = MONTHS.map((m, i) =>
+                `<button onclick="changeMonth(${i})" class="flex-none px-3 py-2 rounded-full text-[10px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">${m.toUpperCase()}</button>`
+            ).join('');
+        }
+
+        // ─── Lógica de Bloqueo / Entrada Segura ───────────────────────────────────
+        function checkSecurity() {
+            const savedKey = localStorage.getItem('app_lock_key');
+            if (!savedKey) {
+                // Primera vez de uso: Forzar creación de llave
+                document.getElementById('lock-screen').classList.remove('hidden');
+                document.getElementById('setup-lock-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('lock-screen').classList.remove('hidden');
+                document.getElementById('lock-input').focus();
+            }
+        }
+
+        function setupAccessKey() {
+            const newKey = prompt("Crea un código numérico o contraseña de acceso:");
+            if (newKey && newKey.trim().length > 0) {
+                localStorage.setItem('app_lock_key', newKey.trim());
+                alert("Clave guardada con éxito.");
+                location.reload();
+            }
+        }
+
+        function checkAccessKey() {
+            const input = document.getElementById('lock-input').value;
+            const savedKey = localStorage.getItem('app_lock_key');
+            if (input === savedKey) {
+                document.getElementById('lock-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                initApp();
+            } else {
+                alert("Clave incorrecta.");
+                document.getElementById('lock-input').value = '';
+            }
+        }
+
+        function clearAccessKey() {
+            if(confirm("¿Seguro que quieres borrar la clave actual y configurar una nueva?")) {
+                localStorage.removeItem('app_lock_key');
+                location.reload();
+            }
+        }
+
+        // Permitir pulsar "Intro" en la pantalla de bloqueo
+        document.getElementById('lock-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkAccessKey();
+        });
+
+        function downloadJSON() {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
+            a.download = 'backup_horas.json';
+            a.click();
+        }
+
+        document.getElementById('file-input').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    data = JSON.parse(ev.target.result);
+                    localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
+                    renderTable(true);
+                } catch { alert('El archivo no es un JSON válido.'); }
             };
+            reader.readAsText(e.target.files[0]);
+        };
 
-            window.upd = function(key, field, value) {
-                if (!window.data[key]) window.data[key] = { t: 'C', i1: '', o1: '', obj: window.getDefaultObjectiveByKey(key) };
-                window.data[key][field] = value;
-                localStorage.setItem('horas_multiy_v1', JSON.stringify(window.data));
-                window.renderTable();
-            };
+        function exportToCSV() {
+            let csv = "\uFEFFFecha;Entrada;Salida;Real;Objetivo;Diferencia;Nota\n";
+            Object.keys(data).sort().forEach(key => {
+                const d = getDay(key);
+                if (!d.i1) return;
+                let w = tToD(d.o1) - tToD(d.i1);
+                if (w < 0) w += 24;
+                csv += `${key};${d.i1};${d.o1};${dToC(w)};${d.obj};${dToC(w - tToD(d.obj))};"${d.note}"\n`;
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            a.download = `registro_${currentYear}.csv`;
+            a.click();
+        }
 
-            window.changeYear = function(y) { window.currentYear = parseInt(y); window.renderTable(); };
-            window.changeMonth = function(m) { window.currentMonthIdx = m; window.renderTabs(); window.renderTable(); };
-
-            window.renderTabs = function() {
-                document.getElementById('month-tabs').innerHTML = window.MONTHS.map((m, i) =>
-                    `<button onclick="window.changeMonth(${i})" class="flex-none px-3 py-1.5 rounded-full text-[10px] font-bold ${i === window.currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">${m.toUpperCase()}</button>`
-                ).join('');
-            };
-
-            // Init selectores superiores
+        function initApp() {
             const sel = document.getElementById('year-selector');
+            sel.innerHTML = '';
             [2026, 2027, 2028].forEach(y => {
                 const opt = document.createElement('option');
                 opt.value = y; opt.innerText = y;
-                if(y === window.currentYear) opt.selected = true;
+                if (y === currentYear) opt.selected = true;
                 sel.appendChild(opt);
             });
-
-            window.renderTabs();
-            window.renderTable();
+            renderTabs();
+            renderTable(true);
         }
 
-        // Permitir envío con tecla Enter
-        document.getElementById('crypto-pass').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') unlockAndDecrypt();
-        });
+        window.onload = () => {
+            checkSecurity();
+        };
     </script>
 </body>
 </html>
