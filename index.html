@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V7.0</title>
+    <title>Registro Horas V7.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -63,8 +63,8 @@
             <div class="grid grid-cols-5 gap-1 py-1 text-center">
                 <div class="ios-card p-1.5"><p class="text-[6px] font-bold text-gray-400 uppercase">Días</p><p id="stat-days" class="text-[11px] font-bold">0</p></div>
                 <div class="ios-card p-1.5 border-l-2 border-blue-200"><p class="text-[6px] font-bold text-gray-400 uppercase">Extras</p><p id="stat-extra-raw" class="text-[11px] font-bold">0:00</p></div>
-                <div class="ios-card p-1.5 bg-blue-50/30"><p id="lbl-conv" class="text-[6px] font-bold text-blue-600 uppercase">Conv. (x1.5)</p><p id="stat-conv" class="text-[11px] font-bold text-blue-700">0:00</p></div>
-                <div class="ios-card p-1.5 bg-indigo-50/50"><p class="text-[6px] font-bold text-indigo-500 uppercase">Noct.</p><p id="stat-noc" class="text-[11px] font-bold text-indigo-700">0:00</p></div>
+                <div class="ios-card p-1.5 bg-blue-50/30"><p id="lbl-conv" class="text-[6px] font-bold text-blue-600 uppercase">Conv. (x2.0)</p><p id="stat-conv" class="text-[11px] font-bold text-blue-700">0:00</p></div>
+                <div class="ios-card p-1.5 bg-indigo-50/50"><p id="lbl-noc-header" class="text-[6px] font-bold text-indigo-500 uppercase">Noct.</p><p id="stat-noc" class="text-[11px] font-bold text-indigo-700">0:00</p></div>
                 <div class="ios-card p-1.5 bg-[#1c1c1e] text-white"><p class="text-[6px] font-bold text-gray-400 uppercase">Suma Total</p><p id="stat-total" class="text-[11px] font-bold">0:00</p></div>
             </div>
 
@@ -132,7 +132,7 @@
                         <span>2. Nuevo Periodo (Desde 1 May)</span>
                         <span class="text-indigo-600 font-black">Factor x2.0</span>
                     </p>
-                    <div class="grid grid-cols-4 gap-1 text-center">
+                    <div class="grid grid-cols-4 gap-1 text-center mb-2">
                         <div class="bg-white p-1.5 rounded-lg border border-gray-100">
                             <p class="text-[5px] text-gray-400 font-bold uppercase">Suma Extras</p>
                             <p id="bag2-raw" class="text-[10px] font-bold">0:00</p>
@@ -141,18 +141,24 @@
                             <p class="text-[5px] text-red-400 font-bold uppercase">Restado</p>
                             <p id="bag2-sub" class="text-[10px] font-bold text-red-500 cursor-pointer" onclick="editSub(2)">0:00</p>
                         </div>
-                        <div class="bg-white p-1.5 rounded-lg border border-indigo-100">
-                            <p class="text-[5px] text-indigo-500 font-bold uppercase">Saldo Neto</p>
-                            <p id="bag2-neto" class="text-[10px] font-bold text-indigo-600">0:00</p>
+                        <div class="bg-white p-1.5 rounded-lg border border-green-100">
+                            <p class="text-[5px] text-green-500 font-bold uppercase">Formación (1:1)</p>
+                            <p id="bag2-formacion" class="text-[10px] font-bold text-green-600 cursor-pointer" onclick="editFormacion()">0:00</p>
                         </div>
                         <div class="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
-                            <p class="text-[5px] text-indigo-100 font-bold uppercase">Saldo+Noct</p>
+                            <p class="text-[5px] text-indigo-100 font-bold uppercase">Saldo Final</p>
                             <p id="bag2-noc" class="text-[10px] font-black text-white">0:00</p>
                         </div>
                     </div>
-                    <div class="mt-2 flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-indigo-100 text-[9px]">
-                        <span class="text-gray-400 font-medium">Horas Sacadas para Cobrar:</span>
-                        <span id="bag2-pay" class="font-black text-orange-600 cursor-pointer" onclick="editPay(2)">0:00</span>
+                    <div class="grid grid-cols-2 gap-2 text-[9px]">
+                        <div class="flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-indigo-100">
+                            <span class="text-gray-400 font-medium">Saldo Neto:</span>
+                            <span id="bag2-neto" class="font-bold text-indigo-600">0:00</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-indigo-100">
+                            <span class="text-gray-400 font-medium">Para Cobrar:</span>
+                            <span id="bag2-pay" class="font-black text-orange-600 cursor-pointer" onclick="editPay(2)">0:00</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -170,7 +176,6 @@
     <input type="file" id="file-input" class="hidden" accept=".json">
 
     <script>
-        // Configuración de periodos antiguos (Solo válidos hasta el 30 de abril de 2026)
         const CONFIG_PERIODOS_OLD = {
             2026: [
                 { start: "2026-01-01", end: "2026-01-25" },
@@ -188,17 +193,13 @@
         let currentMonthIdx = new Date().getMonth();
         let data = JSON.parse(localStorage.getItem('horas_multiy_v1')) || {};
         
-        // Variables de persistencia independientes para cada Bolsa
         let bag1Sub = parseFloat(localStorage.getItem('bag1_sub')) || 0;
         let bag1Pay = parseFloat(localStorage.getItem('bag1_pay')) || 0;
         let bag2Sub = parseFloat(localStorage.getItem('bag2_sub')) || 0;
         let bag2Pay = parseFloat(localStorage.getItem('bag2_pay')) || 0;
+        let bag2Formacion = parseFloat(localStorage.getItem('bag2_formacion')) || 0; // Nueva variable formación
         
         let activeKey = null;
-
-        function isPostMay2026(dateObj) {
-            return dateObj.getFullYear() > 2026 || (dateObj.getFullYear() === 2026 && dateObj.getMonth() >= 4);
-        }
 
         function isPostMay2026ByKey(key) {
             const parts = key.split('-');
@@ -206,7 +207,6 @@
             return y > 2026 || (y === 2026 && m >= 4);
         }
 
-        // ─── Utilidades de tiempo ────────────────────────────────────────────────
         function tToD(t) {
             if (!t) return 0;
             let clean = t.toString().replace(',', '.').trim();
@@ -262,13 +262,15 @@
         function calcDay(key) {
             const d = getDay(key);
             let worked = 0, noc = 0;
+            const postMay = isPostMay2026ByKey(key);
+
             if (d.i1 && d.o1) {
                 let w = tToD(d.o1) - tToD(d.i1);
                 if (w < 0) w += 24;
                 worked += w;
-                noc += calcNightBonus(d.i1, d.o1);
+                if (!postMay) noc += calcNightBonus(d.i1, d.o1); // Solo procesa nocturnidad antes de Mayo
             }
-            if (d.t === 'P' && d.i2 && d.o2) {
+            if (d.t === 'P' && d.i2 && d.o2 && !postMay) {
                 let w = tToD(d.o2) - tToD(d.i2);
                 if (w < 0) w += 24;
                 worked += w;
@@ -278,272 +280,13 @@
         }
 
         function getPeriodDates(year, monthIdx) {
-            // Regla 1: Si es igual o mayor a Mayo 2026, usar meses naturales
             if (year > 2026 || (year === 2026 && monthIdx >= 4)) {
-                return {
-                    start: new Date(year, monthIdx, 1),
-                    end:   new Date(year, monthIdx + 1, 0)
-                };
+                return { start: new Date(year, monthIdx, 1), end: new Date(year, monthIdx + 1, 0) };
             }
-            // Historial antiguo bajo configuraciones antiguas
             if (CONFIG_PERIODOS_OLD[year]?.[monthIdx]) {
-                return {
-                    start: new Date(CONFIG_PERIODOS_OLD[year][monthIdx].start),
-                    end:   new Date(CONFIG_PERIODOS_OLD[year][monthIdx].end)
-                };
+                return { start: new Date(CONFIG_PERIODOS_OLD[year][monthIdx].start), end: new Date(CONFIG_PERIODOS_OLD[year][monthIdx].end) };
             }
-            return {
-                start: new Date(year, monthIdx, 1),
-                end:   new Date(year, monthIdx + 1, 0)
-            };
+            return { start: new Date(year, monthIdx, 1), end: new Date(year, monthIdx + 1, 0) };
         }
 
-        function dateKey(d) {
-            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-        }
-
-        // ─── Render principal ────────────────────────────────────────────────────
-        function renderTable(shouldScroll = false) {
-            const body = document.getElementById('table-body');
-            body.innerHTML = '';
-
-            const { start, end } = getPeriodDates(currentYear, currentMonthIdx);
-            const today = new Date();
-            const todayKey = dateKey(today);
-
-            let mDays = 0, mExtraRaw = 0, mNocBonus = 0;
-            const isNewRuleMonth = currentYear > 2026 || (currentYear === 2026 && currentMonthIdx >= 4);
-            
-            // Cambiar dinámicamente el multiplicador en las etiquetas rápidas de arriba
-            document.getElementById('lbl-conv').innerText = isNewRuleMonth ? "Conv. (x2.0)" : "Conv. (x1.5)";
-
-            const iter = new Date(start);
-            while (iter <= end) {
-                const key = dateKey(iter);
-                const d = getDay(key);
-                const { worked, noc, diff } = calcDay(key);
-
-                if (worked > 0) { mDays++; mExtraRaw += diff; mNocBonus += noc; }
-
-                const row = document.createElement('tr');
-                if (key === todayKey) { row.className = 'today-row'; row.id = 'scroll-target'; }
-                if (iter.getDay() === 0 || iter.getDay() === 6) row.classList.add('weekend');
-
-                // Regla 4: A partir del 1 de Mayo, si sale > 16:05 es Dieta (Rojo)
-                let isDieta = false;
-                if (isNewRuleMonth && d.o1) {
-                    if (tToD(d.o1) > tToD("16:05")) isDieta = true;
-                }
-
-                const dayNum = iter.getDate();
-                const monNum = iter.getMonth() + 1;
-
-                row.innerHTML = `
-                    <td class="col-dia${d.note ? ' has-note' : ''}" onclick="openModal('${key}', ${dayNum}, ${iter.getMonth()})">
-                        <div class="text-[6px] font-bold text-gray-400 uppercase">${DAYS_SHORT[iter.getDay()]} ${monNum}/${iter.getFullYear()}</div>
-                        <div class="${isDieta ? 'dieta-row-num' : 'text-gray-900'} text-[12px] font-bold">${dayNum}</div>
-                        <span class="tipo-tag">(${d.t})</span>
-                    </td>
-                    <td class="col-data">
-                        <input type="text" value="${d.i1}" onblur="upd('${key}','i1',this.value)" placeholder="--:--">
-                        ${d.t === 'P' ? `<input type="text" value="${d.i2}" onblur="upd('${key}','i2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
-                    </td>
-                    <td class="col-data">
-                        <input type="text" value="${d.o1}" onblur="upd('${key}','o1',this.value)" placeholder="--:--">
-                        ${d.t === 'P' ? `<input type="text" value="${d.o2}" onblur="upd('${key}','o2',this.value)" class="border-t border-gray-100 mt-1">` : ''}
-                    </td>
-                    <td class="col-total font-semibold text-blue-600">${worked > 0 ? dToC(worked) : '-'}</td>
-                    <td class="col-obj"><input type="text" value="${d.obj}" onblur="upd('${key}','obj',this.value)"></td>
-                    <td class="col-extra font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}">${worked > 0 ? (diff >= 0 ? '+' : '') + dToC(diff) : ''}</td>
-                `;
-                body.appendChild(row);
-                iter.setDate(iter.getDate() + 1);
-            }
-
-            const currentFactor = isNewRuleMonth ? 2.0 : 1.5;
-            document.getElementById('stat-days').innerText      = mDays;
-            document.getElementById('stat-extra-raw').innerText = dToC(mExtraRaw);
-            document.getElementById('stat-conv').innerText      = dToC(mExtraRaw * currentFactor);
-            document.getElementById('stat-noc').innerText       = dToC(mNocBonus);
-            document.getElementById('stat-total').innerText     = dToC(mExtraRaw * currentFactor + mNocBonus);
-
-            updateBagStats();
-
-            if (shouldScroll) {
-                setTimeout(() => document.getElementById('scroll-target')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
-            }
-        }
-
-        // ─── Lógica de doble bolsa separada ──────────────────────────────────────
-        function updateBagStats() {
-            let b1Raw = 0, b1Noc = 0;
-            let b2Raw = 0, b2Noc = 0;
-
-            Object.keys(data).forEach(key => {
-                const { worked, noc, diff } = calcDay(key);
-                if (worked > 0) {
-                    if (isPostMay2026ByKey(key)) {
-                        b2Raw += diff;
-                        b2Noc += noc;
-                    } else {
-                        b1Raw += diff;
-                        b1Noc += noc;
-                    }
-                }
-            });
-
-            // Cálculos independientes Bolsa 1 (Hasta 30 Abr) -> Multiplicador 1.5
-            const b1Neto = (b1Raw - bag1Pay - bag1Sub) * 1.5;
-            const b1TotalPlusNoc = b1Neto + b1Noc;
-
-            // Cálculos independientes Bolsa 2 (Desde 1 May) -> Multiplicador 2.0
-            const b2Neto = (b2Raw - bag2Pay - bag2Sub) * 2.0;
-            const b2TotalPlusNoc = b2Neto + b2Noc;
-
-            // Inyectar en interfaz Bolsa 1
-            document.getElementById('bag1-raw').innerText = dToC(b1Raw);
-            document.getElementById('bag1-sub').innerText = dToC(bag1Sub);
-            document.getElementById('bag1-neto').innerText = dToC(b1Neto);
-            document.getElementById('bag1-noc').innerText = dToC(b1TotalPlusNoc);
-            document.getElementById('bag1-pay').innerText = dToC(bag1Pay);
-
-            // Inyectar en interfaz Bolsa 2
-            document.getElementById('bag2-raw').innerText = dToC(b2Raw);
-            document.getElementById('bag2-sub').innerText = dToC(bag2Sub);
-            document.getElementById('bag2-neto').innerText = dToC(b2Neto);
-            document.getElementById('bag2-noc').innerText = dToC(b2TotalPlusNoc);
-            document.getElementById('bag2-pay').innerText = dToC(bag2Pay);
-        }
-
-        function editSub(bagNum) {
-            if (bagNum === 1) {
-                const val = prompt("Bolsa 1 (Antigua) - Horas a restar manualmente:", dToC(bag1Sub));
-                if (val !== null) { bag1Sub = tToD(val); localStorage.setItem('bag1_sub', bag1Sub); }
-            } else {
-                const val = prompt("Bolsa 2 (Nueva) - Horas a restar manualmente:", dToC(bag2Sub));
-                if (val !== null) { bag2Sub = tToD(val); localStorage.setItem('bag2_sub', bag2Sub); }
-            }
-            updateBagStats();
-        }
-
-        function editPay(bagNum) {
-            if (bagNum === 1) {
-                const val = prompt("Bolsa 1 (Antigua) - Horas para COBRAR:", dToC(bag1Pay));
-                if (val !== null) { bag1Pay = tToD(val); localStorage.setItem('bag1_pay', bag1Pay); }
-            } else {
-                const val = prompt("Bolsa 2 (Nueva) - Horas para COBRAR:", dToC(bag2Pay));
-                if (val !== null) { bag2Pay = tToD(val); localStorage.setItem('bag2_pay', bag2Pay); }
-            }
-            updateBagStats();
-        }
-
-        // ─── Controladores e Interfaz ─────────────────────────────────────────────
-        function upd(key, field, value) {
-            if (!data[key]) data[key] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: DEFAULT_OBJ, note: '' };
-            if (field === 'i1') delete data[key].in;
-            if (field === 'o1') delete data[key].out;
-            data[key][field] = value;
-            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
-            renderTable(false);
-        }
-
-        function openModal(key, dayNum, monthIdx) {
-            activeKey = key;
-            document.getElementById('modal-date').innerText  = `${dayNum} de ${MONTHS[monthIdx]}`;
-            document.getElementById('modal-text').value      = data[key]?.note || '';
-            
-            // Ocultar selector de tipo de jornada si estamos a partir del 1 de Mayo (Punto 4: Quitar partida)
-            const isPartidaHidden = isPostMay2026ByKey(key);
-            document.getElementById('modal-tipo-container').style.display = isPartidaHidden ? 'none' : 'block';
-            document.getElementById('modal-tipo').value      = isPartidaHidden ? 'C' : (data[key]?.t || 'C');
-            
-            document.getElementById('modal-overlay').style.display = 'flex';
-        }
-
-        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
-
-        function saveModalData() {
-            if (!data[activeKey]) data[activeKey] = { t: 'C', i1: '', o1: '', i2: '', o2: '', obj: DEFAULT_OBJ, note: '' };
-            data[activeKey].t    = isPostMay2026ByKey(activeKey) ? 'C' : document.getElementById('modal-tipo').value;
-            data[activeKey].note = document.getElementById('modal-text').value;
-            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
-            closeModal();
-            renderTable();
-        }
-
-        function setGlobalObjective() {
-            const newObj = prompt("Objetivo Anual (HH:MM):", DEFAULT_OBJ);
-            if (!newObj) return;
-            
-            // Bucle inteligente ajustado por años y reglas de meses
-            for (let m = 0; m < 12; m++) {
-                const { start, end } = getPeriodDates(currentYear, m);
-                const iter = new Date(start);
-                while (iter <= end) {
-                    const k = dateKey(iter);
-                    if (!data[k]) data[k] = { t: 'C', i1: '', o1: '', obj: newObj };
-                    else data[k].obj = newObj;
-                    iter.setDate(iter.getDate() + 1);
-                }
-            }
-            localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
-            renderTable();
-        }
-
-        function changeMonth(i) { currentMonthIdx = i; renderTabs(); renderTable(true); }
-        function changeYear(y)  { currentYear = parseInt(y); renderTable(true); }
-
-        function renderTabs() {
-            document.getElementById('month-tabs').innerHTML = MONTHS.map((m, i) =>
-                `<button onclick="changeMonth(${i})" class="flex-none px-3 py-2 rounded-full text-[10px] font-bold ${i === currentMonthIdx ? 'bg-black text-white' : 'bg-white text-gray-400 border border-gray-100'}">${m.toUpperCase()}</button>`
-            ).join('');
-        }
-
-        function downloadJSON() {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
-            a.download = 'backup_horas.json';
-            a.click();
-        }
-
-        document.getElementById('file-input').onchange = (e) => {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    data = JSON.parse(ev.target.result);
-                    localStorage.setItem('horas_multiy_v1', JSON.stringify(data));
-                    renderTable(true);
-                } catch { alert('El archivo no es un JSON válido.'); }
-            };
-            reader.readAsText(e.target.files[0]);
-        };
-
-        function exportToCSV() {
-            let csv = "\uFEFFFecha;Entrada;Salida;Real;Objetivo;Diferencia;Nota\n";
-            Object.keys(data).sort().forEach(key => {
-                const d = getDay(key);
-                if (!d.i1) return;
-                let w = tToD(d.o1) - tToD(d.i1);
-                if (w < 0) w += 24;
-                csv += `${key};${d.i1};${d.o1};${dToC(w)};${d.obj};${dToC(w - tToD(d.obj))};"${d.note}"\n`;
-            });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            a.download = `registro_${currentYear}.csv`;
-            a.click();
-        }
-
-        window.onload = () => {
-            const sel = document.getElementById('year-selector');
-            [2026, 2027, 2028].forEach(y => {
-                const opt = document.createElement('option');
-                opt.value = y; opt.innerText = y;
-                if (y === currentYear) opt.selected = true;
-                sel.appendChild(opt);
-            });
-            renderTabs();
-            renderTable(true);
-        };
-    </script>
-</body>
-</html>
+        function dateKey(d) { return `${d.getFullYear()
