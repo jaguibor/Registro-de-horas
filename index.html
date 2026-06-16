@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V7.2</title>
+    <title>Registro Horas V7.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -23,18 +23,29 @@
         .has-note::after { content: ''; position: absolute; top: 4px; left: 4px; width: 4px; height: 4px; background: #ff9500; border-radius: 50%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .dieta-row-num { color: #ff3b30 !important; font-weight: 900 !important; }
+        #lock-screen input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+        #lock-input.shake {
+            animation: shake 0.4s ease;
+        }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-6px); }
+            80% { transform: translateX(6px); }
+        }
     </style>
 </head>
 <body class="pb-20">
 
     <div id="lock-screen" class="fixed inset-0 bg-[#F2F2F7] z-[300] flex flex-col items-center justify-center p-6 hidden">
         <div class="w-full max-w-xs text-center">
-            <div class="text-4xl mb-4">🔒</div>
-            <h2 class="text-xl font-bold mb-2">Acceso Protegido</h2>
-            <p class="text-xs text-gray-500 mb-6">Introduce tu clave de acceso. Tu navegador puede permitirte usar FaceID/Huella para autocompletar.</p>
-            <input type="password" id="lock-input" autocomplete="current-password" class="w-full p-4 bg-white rounded-2xl text-center text-lg font-bold shadow-sm border border-gray-200 mb-4 outline-none tracking-widest" placeholder="••••">
+            <div class="text-5xl mb-5">🔒</div>
+            <h2 class="text-xl font-bold mb-1">Registro de Horas</h2>
+            <p class="text-xs text-gray-400 mb-7">Introduce tu clave de acceso</p>
+            <input type="password" id="lock-input" inputmode="numeric" autocomplete="current-password" class="w-full p-4 bg-white rounded-2xl text-center text-2xl font-bold shadow-sm border border-gray-200 mb-4 outline-none tracking-[0.5em] transition-all duration-200" placeholder="••••" maxlength="10">
+            <p id="lock-error" class="text-xs text-red-500 font-semibold mb-3 h-4"></p>
             <button onclick="checkAccessKey()" class="w-full p-4 bg-black text-white font-bold rounded-2xl shadow-md active:scale-95 transition-transform">Desbloquear</button>
-            <button id="setup-lock-btn" onclick="setupAccessKey()" class="w-full mt-2 p-2 text-xs text-blue-600 font-semibold hidden">Configurar nueva clave</button>
         </div>
     </div>
 
@@ -180,7 +191,6 @@
                     <button onclick="downloadJSON()" class="flex-1 bg-gray-200/50 p-3 rounded-xl text-[9px] font-bold uppercase text-gray-600">Copia Seguridad</button>
                     <button onclick="document.getElementById('file-input').click()" class="flex-1 bg-gray-200/50 p-3 rounded-xl text-[9px] font-bold uppercase text-gray-600">Restaurar</button>
                 </div>
-                <button onclick="clearAccessKey()" class="w-full text-center text-[9px] text-red-400 font-bold uppercase tracking-wider mt-2">Cambiar clave de bloqueo</button>
             </div>
         </div>
     </div>
@@ -212,7 +222,35 @@
         
         let activeKey = null;
 
-        // Regla 1: Objetivo dual según la fecha
+        // ─── Contraseña fija ───────────────────────────────────────────────────────
+        const ACCESS_KEY = '1526';
+
+        function checkAccessKey() {
+            const input = document.getElementById('lock-input').value;
+            const errorEl = document.getElementById('lock-error');
+            const inputEl = document.getElementById('lock-input');
+
+            if (input === ACCESS_KEY) {
+                errorEl.textContent = '';
+                document.getElementById('lock-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                initApp();
+            } else {
+                errorEl.textContent = 'Clave incorrecta';
+                inputEl.value = '';
+                inputEl.classList.remove('shake');
+                void inputEl.offsetWidth; // forzar reflow para reiniciar animación
+                inputEl.classList.add('shake');
+                setTimeout(() => inputEl.classList.remove('shake'), 400);
+                inputEl.focus();
+            }
+        }
+
+        document.getElementById('lock-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkAccessKey();
+        });
+        // ──────────────────────────────────────────────────────────────────────────
+
         function getDefaultObjectiveByKey(key) {
             return isPostMay2026ByKey(key) ? "07:00" : "07:36";
         }
@@ -424,7 +462,6 @@
             updateBagStats();
         }
 
-        // Modificación del inyector manual inteligente por periodos
         function setGlobalObjective() {
             const isNewRuleMonth = currentYear > 2026 || (currentYear === 2026 && currentMonthIdx >= 4);
             const sug = isNewRuleMonth ? "07:00" : "07:36";
@@ -437,7 +474,6 @@
                 const iter = new Date(start);
                 while (iter <= end) {
                     const k = dateKey(iter);
-                    // Solo aplica el cambio masivo al bloque correspondiente (antiguo o nuevo)
                     if (isPostMay2026ByKey(k) === isNewRuleMonth) {
                         if (!data[k]) data[k] = { t: 'C', i1: '', o1: '', obj: newObj };
                         else data[k].obj = newObj;
@@ -510,53 +546,6 @@
             ).join('');
         }
 
-        // ─── Lógica de Bloqueo / Entrada Segura ───────────────────────────────────
-        function checkSecurity() {
-            const savedKey = localStorage.getItem('app_lock_key');
-            if (!savedKey) {
-                // Primera vez de uso: Forzar creación de llave
-                document.getElementById('lock-screen').classList.remove('hidden');
-                document.getElementById('setup-lock-btn').classList.remove('hidden');
-            } else {
-                document.getElementById('lock-screen').classList.remove('hidden');
-                document.getElementById('lock-input').focus();
-            }
-        }
-
-        function setupAccessKey() {
-            const newKey = prompt("Crea un código numérico o contraseña de acceso:");
-            if (newKey && newKey.trim().length > 0) {
-                localStorage.setItem('app_lock_key', newKey.trim());
-                alert("Clave guardada con éxito.");
-                location.reload();
-            }
-        }
-
-        function checkAccessKey() {
-            const input = document.getElementById('lock-input').value;
-            const savedKey = localStorage.getItem('app_lock_key');
-            if (input === savedKey) {
-                document.getElementById('lock-screen').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-                initApp();
-            } else {
-                alert("Clave incorrecta.");
-                document.getElementById('lock-input').value = '';
-            }
-        }
-
-        function clearAccessKey() {
-            if(confirm("¿Seguro que quieres borrar la clave actual y configurar una nueva?")) {
-                localStorage.removeItem('app_lock_key');
-                location.reload();
-            }
-        }
-
-        // Permitir pulsar "Intro" en la pantalla de bloqueo
-        document.getElementById('lock-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') checkAccessKey();
-        });
-
         function downloadJSON() {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
@@ -605,7 +594,8 @@
         }
 
         window.onload = () => {
-            checkSecurity();
+            document.getElementById('lock-screen').classList.remove('hidden');
+            document.getElementById('lock-input').focus();
         };
     </script>
 </body>
