@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V7.3</title>
+    <title>Registro Horas V7.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -252,7 +252,17 @@
         // ──────────────────────────────────────────────────────────────────────────
 
         function getDefaultObjectiveByKey(key) {
-            return isPostMay2026ByKey(key) ? "07:00" : "07:36";
+            if (isPostMay2026ByKey(key)) {
+                // Sábado (6) o domingo (0) con horas registradas → objetivo 11:00
+                const parts = key.split('-');
+                const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                const dayOfWeek = d.getDay();
+                if ((dayOfWeek === 0 || dayOfWeek === 6) && data[key]?.i1) {
+                    return "11:00";
+                }
+                return "07:00";
+            }
+            return "07:36";
         }
 
         function isPostMay2026ByKey(key) {
@@ -372,8 +382,11 @@
                 if (iter.getDay() === 0 || iter.getDay() === 6) row.classList.add('weekend');
 
                 let isDieta = false;
-                if (isNewRuleMonth && d.o1) {
-                    if (tToD(d.o1) > tToD("16:05")) isDieta = true;
+                if (isNewRuleMonth && d.o1 && d.i1) {
+                    const entradaH = tToD(d.i1);
+                    const salidaH  = tToD(d.o1);
+                    // Turno de tarde (entrada >= 14:00): sin dieta aunque salga tarde
+                    if (entradaH < 14 && salidaH >= tToD("16:05")) isDieta = true;
                 }
 
                 const dayNum = iter.getDate();
