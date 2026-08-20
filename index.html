@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Registro Horas V7.4</title>
+    <title>Registro Horas V7.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --ios-bg: #F2F2F7; }
@@ -23,31 +23,10 @@
         .has-note::after { content: ''; position: absolute; top: 4px; left: 4px; width: 4px; height: 4px; background: #ff9500; border-radius: 50%; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .dieta-row-num { color: #ff3b30 !important; font-weight: 900 !important; }
-        #lock-screen input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
-        #lock-input.shake {
-            animation: shake 0.4s ease;
-        }
-        @keyframes shake {
-            0%,100% { transform: translateX(0); }
-            20% { transform: translateX(-8px); }
-            40% { transform: translateX(8px); }
-            60% { transform: translateX(-6px); }
-            80% { transform: translateX(6px); }
-        }
+
     </style>
 </head>
 <body class="pb-20">
-
-    <div id="lock-screen" class="fixed inset-0 bg-[#F2F2F7] z-[300] flex flex-col items-center justify-center p-6 hidden">
-        <div class="w-full max-w-xs text-center">
-            <div class="text-5xl mb-5">🔒</div>
-            <h2 class="text-xl font-bold mb-1">Registro de Horas</h2>
-            <p class="text-xs text-gray-400 mb-7">Introduce tu clave de acceso</p>
-            <input type="password" id="lock-input" inputmode="numeric" autocomplete="current-password" class="w-full p-4 bg-white rounded-2xl text-center text-2xl font-bold shadow-sm border border-gray-200 mb-4 outline-none tracking-[0.5em] transition-all duration-200" placeholder="••••" maxlength="10">
-            <p id="lock-error" class="text-xs text-red-500 font-semibold mb-3 h-4"></p>
-            <button onclick="checkAccessKey()" class="w-full p-4 bg-black text-white font-bold rounded-2xl shadow-md active:scale-95 transition-transform">Desbloquear</button>
-        </div>
-    </div>
 
     <div id="modal-overlay" class="fixed inset-0 bg-black/40 z-[200] hidden items-center justify-center p-6 backdrop-blur-sm" onclick="if(event.target==this) closeModal()">
         <div class="bg-white w-full max-w-xs rounded-2xl p-6 shadow-2xl border border-gray-100 text-center">
@@ -70,7 +49,7 @@
         </div>
     </div>
 
-    <div id="app-content" class="max-w-md mx-auto hidden">
+    <div id="app-content" class="max-w-md mx-auto">
         <div class="header-sticky px-2">
             <div class="flex justify-between items-center pt-5 pb-1">
                 <h1 class="text-lg font-bold tracking-tight">Registro</h1>
@@ -149,9 +128,9 @@
                     </div>
                 </div>
 
-                <div class="bg-white/40 p-3 rounded-xl border border-indigo-200">
+                <div class="mb-5 bg-white/40 p-3 rounded-xl border border-indigo-200">
                     <p class="text-[9px] font-black text-indigo-700 uppercase mb-2 flex justify-between">
-                        <span>2. Nuevo Periodo (Desde 1 May)</span>
+                        <span>2. Periodo Mayo–Julio</span>
                         <span class="text-indigo-600 font-black">Factor x2.0</span>
                     </p>
                     <div class="grid grid-cols-4 gap-1 text-center mb-2">
@@ -180,6 +159,41 @@
                         <div class="flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-indigo-100">
                             <span class="text-gray-400 font-medium">Para Cobrar:</span>
                             <span id="bag2-pay" class="font-black text-orange-600 cursor-pointer" onclick="editPay(2)">0:00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white/40 p-3 rounded-xl border border-violet-300">
+                    <p class="text-[9px] font-black text-violet-700 uppercase mb-2 flex justify-between">
+                        <span>3. Periodo Agosto en adelante</span>
+                        <span class="text-violet-600 font-black">Factor x2.0</span>
+                    </p>
+                    <div class="grid grid-cols-4 gap-1 text-center mb-2">
+                        <div class="bg-white p-1.5 rounded-lg border border-gray-100">
+                            <p class="text-[5px] text-gray-400 font-bold uppercase">Suma Extras</p>
+                            <p id="bag3-raw" class="text-[10px] font-bold">0:00</p>
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-red-100">
+                            <p class="text-[5px] text-red-400 font-bold uppercase">Restado</p>
+                            <p id="bag3-sub" class="text-[10px] font-bold text-red-500 cursor-pointer" onclick="editSub(3)">0:00</p>
+                        </div>
+                        <div class="bg-white p-1.5 rounded-lg border border-green-100">
+                            <p class="text-[5px] text-green-500 font-bold uppercase">Formación (1:1)</p>
+                            <p id="bag3-formacion" class="text-[10px] font-bold text-green-600 cursor-pointer" onclick="editFormacion3()">0:00</p>
+                        </div>
+                        <div class="bg-violet-600 p-1.5 rounded-lg shadow-sm">
+                            <p class="text-[5px] text-violet-100 font-bold uppercase">Saldo Final</p>
+                            <p id="bag3-final" class="text-[10px] font-black text-white">0:00</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[9px]">
+                        <div class="flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-violet-100">
+                            <span class="text-gray-400 font-medium">Saldo Neto:</span>
+                            <span id="bag3-neto" class="font-bold text-violet-600">0:00</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-white/80 p-1.5 rounded-lg border border-violet-100">
+                            <span class="text-gray-400 font-medium">Para Cobrar:</span>
+                            <span id="bag3-pay" class="font-black text-orange-600 cursor-pointer" onclick="editPay(3)">0:00</span>
                         </div>
                     </div>
                 </div>
@@ -219,37 +233,13 @@
         let bag2Sub = parseFloat(localStorage.getItem('bag2_sub')) || 0;
         let bag2Pay = parseFloat(localStorage.getItem('bag2_pay')) || 0;
         let bag2Formacion = parseFloat(localStorage.getItem('bag2_formacion')) || 0;
+        let bag3Sub = parseFloat(localStorage.getItem('bag3_sub')) || 0;
+        let bag3Pay = parseFloat(localStorage.getItem('bag3_pay')) || 0;
+        let bag3Formacion = parseFloat(localStorage.getItem('bag3_formacion')) || 0;
         
         let activeKey = null;
 
-        // ─── Contraseña fija ───────────────────────────────────────────────────────
-        const ACCESS_KEY = '1526';
 
-        function checkAccessKey() {
-            const input = document.getElementById('lock-input').value;
-            const errorEl = document.getElementById('lock-error');
-            const inputEl = document.getElementById('lock-input');
-
-            if (input === ACCESS_KEY) {
-                errorEl.textContent = '';
-                document.getElementById('lock-screen').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-                initApp();
-            } else {
-                errorEl.textContent = 'Clave incorrecta';
-                inputEl.value = '';
-                inputEl.classList.remove('shake');
-                void inputEl.offsetWidth; // forzar reflow para reiniciar animación
-                inputEl.classList.add('shake');
-                setTimeout(() => inputEl.classList.remove('shake'), 400);
-                inputEl.focus();
-            }
-        }
-
-        document.getElementById('lock-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') checkAccessKey();
-        });
-        // ──────────────────────────────────────────────────────────────────────────
 
         function getDefaultObjectiveByKey(key) {
             if (isPostMay2026ByKey(key)) {
@@ -269,6 +259,14 @@
             const parts = key.split('-');
             const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1;
             return y > 2026 || (y === 2026 && m >= 4);
+        }
+
+        // Mayo-Julio: postMay y NO postAug
+        // Agosto en adelante: postAug
+        function isPostAugByKey(key) {
+            const parts = key.split('-');
+            const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1;
+            return y > 2026 || (y === 2026 && m >= 7);
         }
 
         function tToD(t) {
@@ -431,11 +429,14 @@
         function updateBagStats() {
             let b1Raw = 0, b1Noc = 0;
             let b2Raw = 0;
+            let b3Raw = 0;
 
             Object.keys(data).forEach(key => {
                 const { worked, noc, diff } = calcDay(key);
                 if (worked > 0) {
-                    if (isPostMay2026ByKey(key)) {
+                    if (isPostAugByKey(key)) {
+                        b3Raw += diff;
+                    } else if (isPostMay2026ByKey(key)) {
                         b2Raw += diff;
                     } else {
                         b1Raw += diff;
@@ -450,6 +451,9 @@
             const b2Neto = (b2Raw - bag2Pay - bag2Sub) * 2.0;
             const b2FinalConFormacion = b2Neto + bag2Formacion;
 
+            const b3Neto = (b3Raw - bag3Pay - bag3Sub) * 2.0;
+            const b3Final = b3Neto + bag3Formacion;
+
             document.getElementById('bag1-raw').innerText = dToC(b1Raw);
             document.getElementById('bag1-sub').innerText = dToC(bag1Sub);
             document.getElementById('bag1-neto').innerText = dToC(b1Neto);
@@ -462,15 +466,25 @@
             document.getElementById('bag2-neto').innerText = dToC(b2Neto);
             document.getElementById('bag2-noc').innerText = dToC(b2FinalConFormacion);
             document.getElementById('bag2-pay').innerText = dToC(bag2Pay);
+
+            document.getElementById('bag3-raw').innerText = dToC(b3Raw);
+            document.getElementById('bag3-sub').innerText = dToC(bag3Sub);
+            document.getElementById('bag3-formacion').innerText = dToC(bag3Formacion);
+            document.getElementById('bag3-neto').innerText = dToC(b3Neto);
+            document.getElementById('bag3-final').innerText = dToC(b3Final);
+            document.getElementById('bag3-pay').innerText = dToC(bag3Pay);
         }
 
         function editSub(bagNum) {
             if (bagNum === 1) {
-                const val = prompt("Bolsa 1 (Antigua) - Horas a restar manualmente:", dToC(bag1Sub));
+                const val = prompt("Bolsa 1 (Hasta Abr) - Horas a restar manualmente:", dToC(bag1Sub));
                 if (val !== null) { bag1Sub = tToD(val); localStorage.setItem('bag1_sub', bag1Sub); }
-            } else {
-                const val = prompt("Bolsa 2 (Nueva) - Horas a restar manualmente:", dToC(bag2Sub));
+            } else if (bagNum === 2) {
+                const val = prompt("Bolsa 2 (Mayo–Jul) - Horas a restar manualmente:", dToC(bag2Sub));
                 if (val !== null) { bag2Sub = tToD(val); localStorage.setItem('bag2_sub', bag2Sub); }
+            } else {
+                const val = prompt("Bolsa 3 (Ago+) - Horas a restar manualmente:", dToC(bag3Sub));
+                if (val !== null) { bag3Sub = tToD(val); localStorage.setItem('bag3_sub', bag3Sub); }
             }
             updateBagStats();
         }
@@ -500,20 +514,32 @@
 
         function editPay(bagNum) {
             if (bagNum === 1) {
-                const val = prompt("Bolsa 1 (Antigua) - Horas para COBRAR:", dToC(bag1Pay));
+                const val = prompt("Bolsa 1 (Hasta Abr) - Horas para COBRAR:", dToC(bag1Pay));
                 if (val !== null) { bag1Pay = tToD(val); localStorage.setItem('bag1_pay', bag1Pay); }
-            } else {
-                const val = prompt("Bolsa 2 (Nueva) - Horas para COBRAR:", dToC(bag2Pay));
+            } else if (bagNum === 2) {
+                const val = prompt("Bolsa 2 (Mayo–Jul) - Horas para COBRAR:", dToC(bag2Pay));
                 if (val !== null) { bag2Pay = tToD(val); localStorage.setItem('bag2_pay', bag2Pay); }
+            } else {
+                const val = prompt("Bolsa 3 (Ago+) - Horas para COBRAR:", dToC(bag3Pay));
+                if (val !== null) { bag3Pay = tToD(val); localStorage.setItem('bag3_pay', bag3Pay); }
             }
             updateBagStats();
         }
 
         function editFormacion() {
-            const val = prompt("Horas de FORMACIÓN realizadas (Se suman 1:1 al Saldo Final):", dToC(bag2Formacion));
+            const val = prompt("Bolsa 2 - Horas de FORMACIÓN (Se suman 1:1 al Saldo Final):", dToC(bag2Formacion));
             if (val !== null) {
                 bag2Formacion = tToD(val);
                 localStorage.setItem('bag2_formacion', bag2Formacion);
+                updateBagStats();
+            }
+        }
+
+        function editFormacion3() {
+            const val = prompt("Bolsa 3 - Horas de FORMACIÓN (Se suman 1:1 al Saldo Final):", dToC(bag3Formacion));
+            if (val !== null) {
+                bag3Formacion = tToD(val);
+                localStorage.setItem('bag3_formacion', bag3Formacion);
                 updateBagStats();
             }
         }
@@ -607,8 +633,7 @@
         }
 
         window.onload = () => {
-            document.getElementById('lock-screen').classList.remove('hidden');
-            document.getElementById('lock-input').focus();
+            initApp();
         };
     </script>
 </body>
